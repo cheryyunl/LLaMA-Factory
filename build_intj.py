@@ -92,8 +92,11 @@ def create_multimodal_qwen2_model(base_model_path, output_path):
     tokenizer_module = load_tokenizer(model_args)
     tokenizer = tokenizer_module["tokenizer"]
     
-    # 3. 创建配置
-    config_dict = AutoConfig.get_config_dict(base_model_path)[0]
+    # 3. 创建配置 - 修改这部分
+    # 先加载配置
+    config = AutoConfig.from_pretrained(base_model_path)
+    # 转换为字典
+    config_dict = config.to_dict()
     config_dict["architectures"] = ["MultimodalQwen2ForCausalLM"]
     config_dict["point_patch_size"] = 512  # 点云patch大小
     
@@ -129,14 +132,24 @@ def test_model(model_path):
     # 创建一个随机点云 (100点, 每点6维特征)
     point_cloud = torch.rand(100, 512 * 6)  # 根据模型配置的point_patch_size
     
-    # 4. 创建point_patch_indices
-    # 找到<point_patch>标记的位置
+    # 4. 创建point_patch_indices - 修复这部分
+    seq_length = inputs["input_ids"].shape[1]  # 获取实际序列长度
     patch_token_id = tokenizer.convert_tokens_to_ids("<point_patch>")
-    point_indices = torch.where(
-        inputs["input_ids"][0] == patch_token_id,
-        torch.arange(100),  # 点云索引
-        torch.tensor(-1)  # 文本标记
-    ).unsqueeze(0)
+    
+    # 创建与输入相同大小的全-1张量
+    point_indices = torch.full_like(inputs["input_ids"], -1, dtype=torch.long)
+    
+    # 找出所有点云标记的位置
+    patch_positions = (inputs["input_ids"][0] == patch_token_id).nonzero().squeeze(-1)
+    
+    # 如果找到点云标记
+    if len(patch_positions) > 0:
+        # 为简单起见，我们假设所有patch_positions使用相同的点云
+        # 实际应用中可能需要更复杂的映射
+        for idx, pos in enumerate(patch_positions):
+            # 最多使用100个点云点
+            point_index = idx % 100
+            point_indices[0, pos] = point_index
     
     # 5. 模型前向传播
     try:
@@ -148,6 +161,8 @@ def test_model(model_path):
         )
         print("模型前向传播成功!")
         print(f"输出logits形状: {outputs.logits.shape}")
+        print(f"输入序列长度: {seq_length}")
+        print(f"点云索引形状: {point_indices.shape}")
         return True
     except Exception as e:
         print(f"模型前向传播失败: {e}")
@@ -213,7 +228,7 @@ def test_with_llamafactory_collator(model_path):
 
 if __name__ == "__main__":
     # 配置路径
-    BASE_MODEL_PATH = "Qwen/Qwen2.5-7B"  # 或你本地的Qwen2模型路径
+    BASE_MODEL_PATH = "/pscratch/sd/c/cheryunl/qwen2_0.5b_cache"  # 或你本地的Qwen2模型路径
     OUTPUT_PATH = "./multimodal_qwen2_model" 
     
     # 创建模型
