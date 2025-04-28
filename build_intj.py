@@ -307,6 +307,41 @@ def test_structured_pointcloud():
     
     return True
 
+def test_text_only_input():
+    """测试纯文本输入处理"""
+    print("\n===== 测试纯文本输入 =====")
+    
+    # 1. 加载tokenizer和插件
+    tokenizer = AutoTokenizer.from_pretrained(OUTPUT_PATH)
+    processor = PointCloudProcessor(tokenizer)
+    pointcloud_plugin = get_mm_plugin(name="qwen2_pointcloud")
+    
+    # 2. 创建纯文本消息
+    text_message = {"role": "user", "content": "What is the capital of France?"}
+    
+    # 3. 处理消息
+    processed_messages = pointcloud_plugin.process_messages(
+        [deepcopy(text_message)], [], [], [], processor
+    )
+    
+    # 4. 验证消息未被修改
+    original = text_message["content"]
+    processed = processed_messages[0]["content"]
+    print(f"原始消息: {original}")
+    print(f"处理后消息: {processed}")
+    print(f"消息相同: {original == processed}")
+    
+    # 5. 测试get_mm_inputs
+    token_ids = tokenizer.encode(processed)
+    mm_inputs = pointcloud_plugin.get_mm_inputs(
+        [], [], [], [0], [], [], [token_ids], processor
+    )
+    
+    print(f"get_mm_inputs结果: {mm_inputs}")
+    print(f"是否为空字典: {mm_inputs == {}}")
+    
+    return True
+
 if __name__ == "__main__":
     # 配置路径
     BASE_MODEL_PATH = "/pscratch/sd/c/cheryunl/qwen2_0.5b_cache"  # 或你本地的Qwen2模型路径
@@ -329,3 +364,7 @@ if __name__ == "__main__":
     if success:
         print("\n测试结构化点云处理...")
         test_structured_pointcloud()
+    
+    if success:
+        print("\n测试纯文本输入...")
+        test_text_only_input()
