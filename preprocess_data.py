@@ -98,25 +98,28 @@ def adjust_points(patch, target_points):
         return np.tile(patch, (repeat_times, 1))[:target_points]
 
 def fps_sampling(points, n_samples, num_candidates=10):
-    """Improved fast FPS sampling (fixed syntax errors)"""
+    """Improved fast FPS sampling (fixed sampling when remaining < num_candidates)"""
     if len(points) <= n_samples:
         return points
     
     indices = [np.random.randint(len(points))]
     
-    # Change loop variable to underscore (indicating the value is not used)
     for _ in range(1, n_samples):
-        # Randomly select candidate points from remaining points
-        remaining_mask = ~np.isin(np.arange(len(points)), indices)
-        candidates = np.random.choice(np.where(remaining_mask)[0], num_candidates, replace=False)
+        # 找出剩余的点索引
+        remaining = np.where(~np.isin(np.arange(len(points)), indices))[0]
+        if len(remaining) == 0:
+            break
         
-        # Calculate minimum distance from each candidate to selected points
-        dists = np.min(np.linalg.norm(
-            points[candidates][:, None] - points[indices],  # Add new dimension for broadcasting
-            axis=2  # Compute L2 norm after calculating differences for each axis
-        ), axis=1)
+        # 如果剩余点少于num_candidates，则取所有剩余点；否则随机抽num_candidates
+        k = min(len(remaining), num_candidates)
+        candidates = np.random.choice(remaining, k, replace=False)
         
-        # Select candidate with maximum distance
+        # 计算每个候选点到已选点集中最小距离
+        dists = np.min(
+            np.linalg.norm(points[candidates][:, None] - points[indices], axis=2),
+            axis=1
+        )
+        # 选取最远的一个
         next_idx = candidates[np.argmax(dists)]
         indices.append(next_idx)
     
