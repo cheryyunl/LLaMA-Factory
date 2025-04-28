@@ -209,6 +209,103 @@ def test_with_llamafactory_collator(model_path, custom_tokenizer, custom_process
         traceback.print_exc()
         return False
 
+def test_structured_pointcloud():
+    """测试结构化点云的处理（2x2x2格式）"""
+    print("\n===== 测试结构化点云处理 =====")
+    
+    # 1. 创建一个2x2x2结构的点云数据
+    # z=0层，2x2=4个patch
+    # z=1层，2x2=4个patch
+    # 总共8个patch
+    patches = []
+    coords = []
+    
+    # 创建2x2x2结构的坐标
+    for z in range(2):
+        for y in range(2):
+            for x in range(2):
+                # 每个patch有5个点，3个特征
+                patch = np.random.rand(5, 3).astype(np.float32)
+                patches.append(patch)
+                coords.append(np.array([x, y, z]))
+    
+    # 将列表转换为np数组
+    coords = np.array(coords)
+    pointcloud_data = PointCloudData(patches, coords)
+    
+    # 2. 加载tokenizer和插件
+    tokenizer = AutoTokenizer.from_pretrained(OUTPUT_PATH)
+    processor = PointCloudProcessor(tokenizer)
+    pointcloud_plugin = get_mm_plugin(name="qwen2_pointcloud")
+    
+    # 3. 创建测试消息
+    test_message = {"role": "user", "content": f"Describe this complex point cloud: {IMAGE_PLACEHOLDER}"}
+    
+    # 4. 处理消息
+    processed_messages = pointcloud_plugin.process_messages(
+        [deepcopy(test_message)], [pointcloud_data], [], [], processor
+    )
+    
+    # 5. 打印并分析处理后的消息
+    print("原始消息:")
+    print(test_message["content"])
+    print("\n处理后消息:")
+    print(processed_messages[0]["content"])
+    
+    # 6. 验证所有特殊token的出现
+    processed_content = processed_messages[0]["content"]
+    special_tokens = ["<pointcloud>", "</pointcloud>", "<layer_sep>", "<row_sep>", "<point_patch>"]
+    token_counts = {token: processed_content.count(token) for token in special_tokens}
+    
+    print("\n特殊token统计:")
+    for token, count in token_counts.items():
+        print(f"  {token}: {count}次")
+    
+    # 7. 验证结构（应该有1次<layer_sep>和2次<row_sep>）
+    if token_counts["<layer_sep>"] == 1:
+        print("✅ 检测到正确的层分隔符数量（1个）")
+    else:
+        print(f"❌ 层分隔符数量错误: 期望1个，实际{token_counts['<layer_sep>']}个")
+    
+    # 每层应有一个row_sep(2行中间)，共2层，所以期望值为2
+    if token_counts["<row_sep>"] == 2:
+        print("✅ 检测到正确的行分隔符数量（2个）")
+    else:
+        print(f"❌ 行分隔符数量错误: 期望2个，实际{token_counts['<row_sep>']}个")
+    
+    # 8. 测试token顺序
+    tokens = tokenizer.tokenize(processed_content)
+    token_ids = tokenizer.encode(processed_content)
+    
+    print("\n分词结果:")
+    print(tokens)
+    
+    # 9. 处理token和获取mm_inputs
+    mm_inputs = pointcloud_plugin.get_mm_inputs(
+        [pointcloud_data], [], [], [1], [], [], [token_ids], processor
+    )
+    
+    print("\nget_mm_inputs结果:")
+    if "point_patch_indices" in mm_inputs:
+        print(f"point_patch_indices形状: {mm_inputs['point_patch_indices'].shape}")
+        # 计算非-1索引的数量（应该是8个，与patch数量一致）
+        non_negative_indices = (mm_inputs["point_patch_indices"] >= 0).sum().item()
+        print(f"检测到的点云patch索引数量: {non_negative_indices}，期望值: {len(patches)}")
+        
+        if non_negative_indices == len(patches):
+            print("✅ 点云patch索引数量正确")
+        else:
+            print("❌ 点云patch索引数量错误")
+    
+    if "point_patches" in mm_inputs:
+        print(f"point_patches形状: {mm_inputs['point_patches'].shape}")
+        # 检查patch数量是否正确
+        if mm_inputs["point_patches"].shape[0] == len(patches):
+            print("✅ 点云特征数量正确")
+        else:
+            print("❌ 点云特征数量错误")
+    
+    return True
 
 if __name__ == "__main__":
     # 配置路径
@@ -228,3 +325,7 @@ if __name__ == "__main__":
     if success:
         print("\n测试与LLaMA Factory集成...")
         test_with_llamafactory_collator(OUTPUT_PATH, tokenizer, processor)
+    
+    if success:
+        print("\n测试结构化点云处理...")
+        test_structured_pointcloud()
