@@ -129,7 +129,7 @@ def test_model(model_path):
         print(f"模型前向传播失败: {e}")
         return False
 
-def test_with_llamafactory_collator(model_path):
+def test_with_llamafactory_collator(model_path, custom_tokenizer, custom_processor):
     """使用LLaMA Factory的collator测试"""
     from llamafactory.data.template import get_template_and_fix_tokenizer
     from llamafactory.hparams import DataArguments
@@ -139,9 +139,8 @@ def test_with_llamafactory_collator(model_path):
     data_args = DataArguments(template="qwen2_pointcloud")
     
     # 2. 加载tokenizer和模板
-    tokenizer_module = load_tokenizer(model_args)
-    tokenizer = tokenizer_module["tokenizer"]
-    processor = tokenizer_module["processor"]
+    tokenizer = custom_tokenizer
+    processor = custom_processor
     template = get_template_and_fix_tokenizer(tokenizer, data_args)
     
     # 3. 创建collator
@@ -206,4 +205,4 @@ if __name__ == "__main__":
     # 测试LLaMA Factory集成
     if success:
         print("\n测试与LLaMA Factory集成...")
-        test_with_llamafactory_collator(OUTPUT_PATH)
+        test_with_llamafactory_collator(OUTPUT_PATH, tokenizer, processor)
