@@ -133,6 +133,8 @@ PROMPTS = [
 
 def process_pointcloud_to_patches(arr, normalize=None):
     """将点云处理为patches和coordinates"""
+    # 把从 buffer 来的 arr 拷贝一份，否则不可写
+    arr = arr.copy()
     xyz = arr[:, :3]
     rgb = arr[:, 3:]
     
