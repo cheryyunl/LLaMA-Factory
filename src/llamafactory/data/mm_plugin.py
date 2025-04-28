@@ -21,7 +21,7 @@ import re
 from copy import deepcopy
 from dataclasses import dataclass
 from io import BytesIO
-from typing import TYPE_CHECKING, Any, BinaryIO, Literal, Optional, TypedDict, Union
+from typing import TYPE_CHECKING, Any, BinaryIO, Literal, Optional, TypedDict, Union, List, Dict
 
 import numpy as np
 import torch
@@ -1811,6 +1811,200 @@ class VideoLlavaPlugin(BasePlugin):
         return messages
 
 
+@dataclass
+class Qwen2PointcloudPlugin(BasePlugin):
+    def __init__(self, image_token=None, video_token=None, audio_token=None):
+        super().__init__(image_token, video_token, audio_token)
+        self.pointcloud_start_token = "<pointcloud>"
+        self.pointcloud_end_token = "</pointcloud>"
+        self.layer_sep_token = "<layer_sep>"
+        self.row_sep_token = "<row_sep>"
+        self.point_patch_token = "<point_patch>"
+    
+    @override
+    def _validate_input(
+        self,
+        processor: Optional["MMProcessor"],
+        images: list["ImageInput"],
+        videos: list["VideoInput"],
+        audios: list["AudioInput"],
+    ) -> None:
+        pass
+        
+    @override
+    def process_messages(
+        self,
+        messages: list[dict[str, str]],
+        images: list["ImageInput"],   # This parameter contains our point cloud data
+        videos: list["VideoInput"],
+        audios: list["AudioInput"],
+        processor: Optional["MMProcessor"],
+    ) -> list[dict[str, str]]:
+        """Process messages and replace point cloud placeholders with structured token sequences"""
+        processed_pointclouds = 0
+        messages = deepcopy(messages)
+        
+        for message in messages:
+            content = message["content"]
+            
+            # Replace IMAGE_PLACEHOLDER with point cloud sequences
+            while IMAGE_PLACEHOLDER in content:
+                if processed_pointclouds >= len(images):
+                    raise ValueError(f"Not enough point cloud data ({len(images)}) for the number of {IMAGE_PLACEHOLDER} tokens.")
+                
+                # 获取当前点云的数据
+                pointcloud_data = images[processed_pointclouds]
+                
+                # Generate structured token sequence based on point cloud data
+                if hasattr(pointcloud_data, 'patches') and hasattr(pointcloud_data, 'patch_coords'):
+                    # 生成结构化token序列
+                    structured_tokens = self._generate_structured_tokens(
+                        pointcloud_data.patch_coords
+                    )
+                    content = content.replace(IMAGE_PLACEHOLDER, structured_tokens, 1)
+                else:
+                    # Fall back to a simple token sequence
+                    content = content.replace(
+                        IMAGE_PLACEHOLDER, 
+                        f"{self.pointcloud_start_token}{self.point_patch_token}{self.pointcloud_end_token}", 
+                        1
+                    )
+                
+                processed_pointclouds += 1
+            
+            message["content"] = content
+        
+        if len(images) != processed_pointclouds:
+            raise ValueError(f"Number of point cloud inputs ({len(images)}) doesn't match the number of {IMAGE_PLACEHOLDER} tokens ({processed_pointclouds}).")
+            
+        return messages
+    
+    def _generate_structured_tokens(self, patch_coords):
+        structured_tokens = f"{self.pointcloud_start_token}"
+        sorted_coords = sorted(patch_coords, key=lambda x: (x[0], x[1], x[2]))
+        
+        current_z, current_y = None, None
+        for z, y, x in sorted_coords:
+            if z != current_z and z != 0:
+                if current_z is not None:
+                    structured_tokens += f"{self.layer_sep_token}"
+                current_z = z
+                current_y = None
+            
+            if y != current_y and y != 0:
+                if current_y is not None:
+                    structured_tokens += f"{self.row_sep_token}"
+                current_y = y
+            
+            structured_tokens += f"{self.point_patch_token}"
+        
+        structured_tokens += f"{self.pointcloud_end_token}"
+        return structured_tokens
+    
+    @override
+    def _regularize_images(
+        self, 
+        images: list["ImageInput"], 
+        **kwargs
+    ) -> dict[str, list[Any]]:
+        patches_list = []
+        patch_coords_list = []
+        
+        for pointcloud_data in images:
+            # 如果输入是自定义点云数据结构
+            if hasattr(pointcloud_data, 'patches') and hasattr(pointcloud_data, 'patch_coords'):
+                patches_list.append(pointcloud_data.patches)
+                patch_coords_list.append(pointcloud_data.patch_coords)
+            elif isinstance(pointcloud_data, dict) and 'patches' in pointcloud_data and 'patch_coords' in pointcloud_data:
+                patches_list.append(pointcloud_data['patches'])
+                patch_coords_list.append(pointcloud_data['patch_coords'])
+            else:
+                patches_list.append([])
+                patch_coords_list.append([])
+        
+        return {
+            "point_patches": patches_list,
+            "patch_coords": patch_coords_list
+        }
+    
+    @override
+    def get_mm_inputs(
+        self,
+        images: list["ImageInput"],
+        videos: list["VideoInput"],
+        audios: list["AudioInput"],
+        imglens: list[int],
+        vidlens: list[int],
+        audlens: list[int],
+        batch_ids: list[list[int]],
+        processor: Optional["MMProcessor"],
+    ) -> dict[str, Union[list[int], "torch.Tensor"]]:
+        pointcloud_data = self._regularize_images(images)
+        
+        if not pointcloud_data["point_patches"] or all(len(p) == 0 for p in pointcloud_data["point_patches"]):
+            return {}  
+
+        tokenizer = getattr(processor, "tokenizer", None)
+        if tokenizer is None:
+            return {}
+        
+        point_patch_id = tokenizer.convert_tokens_to_ids(self.point_patch_token)
+        
+        batch_size = len(batch_ids)
+        max_length = max(len(ids) for ids in batch_ids)
+        
+        point_patch_indices = torch.full((batch_size, max_length), -1, dtype=torch.long)
+        
+        all_patches = []
+        for batch_idx, (ids, imglen) in enumerate(zip(batch_ids, imglens)):
+            patch_positions = [i for i, id in enumerate(ids) if id == point_patch_id]
+            if batch_idx < len(pointcloud_data["point_patches"]) and pointcloud_data["point_patches"][batch_idx]:
+                patches = pointcloud_data["point_patches"][batch_idx]
+                patch_idx_offset = len(all_patches)
+                for i, pos in enumerate(patch_positions):
+                    if i < len(patches):
+                        point_patch_indices[batch_idx, pos] = patch_idx_offset + i
+            
+                all_patches.extend(patches)
+        
+        if all_patches:
+            max_points = max(p.shape[0] if len(p.shape) > 0 else 0 for p in all_patches)
+            max_features = max(p.shape[1] if len(p.shape) > 1 else 0 for p in all_patches)
+            
+            padded_patches = []
+            for patch in all_patches:
+                if len(patch.shape) == 0:
+                    padded_patch = np.zeros((max_points, max_features), dtype=np.float32)
+                elif patch.shape[0] < max_points or patch.shape[1] < max_features:
+                    padded_patch = np.zeros((max_points, max_features), dtype=np.float32)
+                    padded_patch[:patch.shape[0], :patch.shape[1]] = patch
+                else:
+                    padded_patch = patch
+                padded_patches.append(padded_patch)
+            
+            point_patches = torch.tensor(np.stack(padded_patches), dtype=torch.float)
+        else:
+            point_patches = torch.zeros((0, 0, 0), dtype=torch.float)
+        
+        return {
+            "point_patch_indices": point_patch_indices,
+            "point_patches": point_patches
+        }
+    
+    @override
+    def process_token_ids(
+        self,
+        input_ids: list[int],
+        labels: Optional[list[int]],
+        images: list["ImageInput"],
+        videos: list["VideoInput"],
+        audios: list["AudioInput"],
+        tokenizer: "PreTrainedTokenizer",
+        processor: Optional["MMProcessor"],
+    ) -> tuple[list[int], Optional[list[int]]]:
+        return input_ids, labels
+
+
 PLUGINS = {
     "base": BasePlugin,
     "gemma3": Gemma3Plugin,
@@ -1827,6 +2021,7 @@ PLUGINS = {
     "qwen2_audio": Qwen2AudioPlugin,
     "qwen2_omni": Qwen2OmniPlugin,
     "qwen2_vl": Qwen2VLPlugin,
+    "qwen2_pointcloud": Qwen2PointcloudPlugin,
     "video_llava": VideoLlavaPlugin,
 }
 
