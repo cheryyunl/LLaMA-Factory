@@ -10,6 +10,7 @@ import argparse
 # from pointcloud_process_utils import dynamic_axis_partition
 import random
 from collections import defaultdict
+import numbers
 
 def dynamic_axis_partition(points, scene_range, max_splits_per_axis=5, target_points=512):
     """
@@ -300,6 +301,16 @@ def analyze_pointcloud_ranges(shard_path, max_samples=100):
     
     return all_ranges
 
+def to_python_type(obj):
+    if isinstance(obj, dict):
+        return {k: to_python_type(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [to_python_type(v) for v in obj]
+    elif isinstance(obj, numbers.Number):
+        return obj.item() if hasattr(obj, 'item') else obj
+    else:
+        return obj
+
 def process_one_shard(args):
     """处理单个shard文件"""
     shard_path, output_dir, use_diverse_prompts, json_index, normalize = args
@@ -308,12 +319,15 @@ def process_one_shard(args):
     dataset_name = os.path.basename(os.path.dirname(shard_path))
     shard_name = os.path.basename(shard_path).replace('.jsonl.lz4', '')
     
+    # 从 shard_name 中提取编号 (比如从 'objects.shard_004' 提取 '004')
+    shard_number = shard_name.split('_')[-1]
+    
+    # 使用 shard 编号来命名 jsonl 文件
+    out_jsonl = os.path.join(output_dir, f"{dataset_name}_{shard_number}.jsonl")
+    
     # 创建npz保存目录
     npz_dir = os.path.join(output_dir, dataset_name, f"patches_{shard_name}")
     os.makedirs(npz_dir, exist_ok=True)
-    
-    # 创建jsonl输出路径 - 根据数据集名称和JSON索引命名
-    out_jsonl = os.path.join(output_dir, f"{dataset_name}_{json_index:03d}.jsonl")
     
     # 检查jsonl是否已存在
     jsonl_exists = os.path.exists(out_jsonl)
@@ -331,6 +345,7 @@ def process_one_shard(args):
     
     all_ranges = defaultdict(lambda: {'min': float('inf'), 'max': float('-inf')})
     
+    print(f"Processing shard {shard_name} -> writing to {out_jsonl}")
     with lz4.frame.open(shard_path, "rt") as fin, open(out_jsonl, open_mode) as fout:
         for idx, line in enumerate(tqdm(fin, desc=f"Processing {dataset_name}/{shard_name}")):
             try:
@@ -399,9 +414,12 @@ def process_one_shard(args):
                 
                 # 写入jsonl
                 fout.write(json.dumps(data, ensure_ascii=False) + "\n")
+                                
+                if idx % 100 == 0:  # 每100条打印一次进度
+                    print(f"Processed {idx} items in {shard_name}, written to {out_jsonl}")
                 
             except Exception as e:
-                print(f"Error processing sample {idx} in {shard_path}: {e}")
+                print(f"Error processing item {idx} in {shard_path}: {str(e)}")
                 continue
     
     # 计算平均值
@@ -414,7 +432,13 @@ def process_one_shard(args):
     # 保存统计信息
     stats_file = os.path.join(output_dir, f"{dataset_name}_{shard_name}_stats.json")
     with open(stats_file, "w") as f:
-        json.dump({"ranges": all_ranges, "stats": stats}, f, indent=2)
+        json.dump(
+            {"ranges": to_python_type(all_ranges), "stats": to_python_type(stats)},
+            f, indent=2
+        )
+    
+    # 处理完成后打印确认
+    print(f"Completed processing {shard_name}, output file: {out_jsonl}")
     
     # 返回处理结果、范围统计和处理统计
     result_msg = f"Processed {stats['pointclouds_processed']} pointclouds (skipped {stats['skipped_samples']}) with {stats['total_patches']} patches from {shard_path}"
