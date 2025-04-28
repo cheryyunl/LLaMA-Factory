@@ -1939,57 +1939,98 @@ class Qwen2PointcloudPlugin(BasePlugin):
         batch_ids: list[list[int]],
         processor: Optional["MMProcessor"],
     ) -> dict[str, Union[list[int], "torch.Tensor"]]:
+        """构建批量多模态输入"""
+        # 获取点云数据
         pointcloud_data = self._regularize_images(images)
         
-        if not pointcloud_data["point_patches"] or all(len(p) == 0 for p in pointcloud_data["point_patches"]):
-            return {}  
-
+        # 调试信息
+        print("\nDEBUG get_mm_inputs:")
+        print(f"  images数量: {len(images)}")
+        print(f"  pointcloud_data['point_patches']长度: {len(pointcloud_data['point_patches'])}")
+        print(f"  imglens: {imglens}")
+        print(f"  batch_ids数量: {len(batch_ids)}")
+        
+        # 获取tokenizer
         tokenizer = getattr(processor, "tokenizer", None)
         if tokenizer is None:
+            print("  ❌ processor没有tokenizer属性")
             return {}
         
+        # 获取点云token ID
         point_patch_id = tokenizer.convert_tokens_to_ids(self.point_patch_token)
+        print(f"  point_patch_id: {point_patch_id}")
         
+        # 创建批处理维度
         batch_size = len(batch_ids)
         max_length = max(len(ids) for ids in batch_ids)
         
+        # 创建点云索引张量（默认-1表示非点云位置）
         point_patch_indices = torch.full((batch_size, max_length), -1, dtype=torch.long)
         
+        # 收集所有点云补丁
         all_patches = []
+        
+        # 处理每个批次样本
         for batch_idx, (ids, imglen) in enumerate(zip(batch_ids, imglens)):
+            # 查找所有点云token位置
             patch_positions = [i for i, id in enumerate(ids) if id == point_patch_id]
-            if batch_idx < len(pointcloud_data["point_patches"]) and pointcloud_data["point_patches"][batch_idx]:
+            print(f"  batch {batch_idx} 找到 {len(patch_positions)} 个点云token位置")
+            
+            # 检查是否有有效的点云数据
+            if batch_idx < len(pointcloud_data["point_patches"]) and len(pointcloud_data["point_patches"][batch_idx]) > 0:
                 patches = pointcloud_data["point_patches"][batch_idx]
+                print(f"  batch {batch_idx} 有 {len(patches)} 个点云patch")
+                
+                # 计算索引偏移量
                 patch_idx_offset = len(all_patches)
+                
+                # 为每个点云token位置分配正确的patch索引
                 for i, pos in enumerate(patch_positions):
                     if i < len(patches):
                         point_patch_indices[batch_idx, pos] = patch_idx_offset + i
-            
+                        print(f"    分配索引: token位置{pos} -> patch索引{patch_idx_offset + i}")
+                
+                # 将所有patch添加到全局列表
                 all_patches.extend(patches)
+            else:
+                print(f"  batch {batch_idx} 没有点云数据或索引超出范围")
         
+        # 处理点云数据
         if all_patches:
-            max_points = max(p.shape[0] if len(p.shape) > 0 else 0 for p in all_patches)
-            max_features = max(p.shape[1] if len(p.shape) > 1 else 0 for p in all_patches)
-            
-            padded_patches = []
-            for patch in all_patches:
-                if len(patch.shape) == 0:
-                    padded_patch = np.zeros((max_points, max_features), dtype=np.float32)
-                elif patch.shape[0] < max_points or patch.shape[1] < max_features:
-                    padded_patch = np.zeros((max_points, max_features), dtype=np.float32)
-                    padded_patch[:patch.shape[0], :patch.shape[1]] = patch
-                else:
-                    padded_patch = patch
-                padded_patches.append(padded_patch)
-            
-            point_patches = torch.tensor(np.stack(padded_patches), dtype=torch.float)
+            print(f"  处理 {len(all_patches)} 个点云patch")
+            # 找出所有patch中最大的点数和特征数
+            try:
+                max_points = max(p.shape[0] if len(p.shape) > 0 else 0 for p in all_patches)
+                max_features = max(p.shape[1] if len(p.shape) > 1 else 0 for p in all_patches)
+                
+                # 填充点云数据
+                padded_patches = []
+                for patch in all_patches:
+                    if len(patch.shape) == 0:
+                        padded_patch = np.zeros((max_points, max_features), dtype=np.float32)
+                    elif patch.shape[0] < max_points or patch.shape[1] < max_features:
+                        padded_patch = np.zeros((max_points, max_features), dtype=np.float32)
+                        padded_patch[:patch.shape[0], :patch.shape[1]] = patch
+                    else:
+                        padded_patch = patch
+                    padded_patches.append(padded_patch)
+                
+                point_patches = torch.tensor(np.stack(padded_patches), dtype=torch.float)
+                print(f"  创建了形状为 {point_patches.shape} 的point_patches张量")
+            except Exception as e:
+                print(f"  ❌ 处理点云数据出错: {e}")
+                point_patches = torch.zeros((1, 1, 1), dtype=torch.float)  # 返回假张量避免错误
         else:
-            point_patches = torch.zeros((0, 0, 0), dtype=torch.float)
+            print("  ⚠️ 没有可用的点云patch")
+            point_patches = torch.zeros((1, 1, 1), dtype=torch.float)  # 返回假张量避免错误
         
-        return {
+        # 即使没有有效patch，也返回索引张量
+        result = {
             "point_patch_indices": point_patch_indices,
             "point_patches": point_patches
         }
+        print(f"  返回: {list(result.keys())}")
+        return result
     
     @override
     def process_token_ids(
