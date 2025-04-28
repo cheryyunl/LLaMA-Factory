@@ -1881,18 +1881,23 @@ class Qwen2PointcloudPlugin(BasePlugin):
     
     def _generate_structured_tokens(self, patch_coords):
         structured_tokens = f"{self.pointcloud_start_token}"
-        sorted_coords = sorted(patch_coords, key=lambda x: (x[0], x[1], x[2]))
+        # 按z,y,x顺序排序
+        sorted_coords = sorted(patch_coords, key=lambda x: (x[2], x[1], x[0]))
         
         current_z, current_y = None, None
-        for z, y, x in sorted_coords:
-            if z != current_z and z != 0:
-                if current_z is not None:
+        for coord in sorted_coords:
+            z, y, x = coord[2], coord[1], coord[0]  # 假设坐标顺序为x,y,z
+            
+            # 如果z发生变化，添加层分隔符
+            if z != current_z:
+                if current_z is not None:  # 第一层不添加分隔符
                     structured_tokens += f"{self.layer_sep_token}"
                 current_z = z
-                current_y = None
+                current_y = None  # 重置y
             
-            if y != current_y and y != 0:
-                if current_y is not None:
+            # 如果y发生变化，添加行分隔符
+            if y != current_y:
+                if current_y is not None:  # 每层的第一行不添加分隔符
                     structured_tokens += f"{self.row_sep_token}"
                 current_y = y
             
