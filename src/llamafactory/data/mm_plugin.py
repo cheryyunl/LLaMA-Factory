@@ -1857,7 +1857,6 @@ class Qwen2PointcloudPlugin(BasePlugin):
                 
                 # Generate structured token sequence based on point cloud data
                 if hasattr(pointcloud_data, 'patches') and hasattr(pointcloud_data, 'patch_coords'):
-                    # 生成结构化token序列
                     structured_tokens = self._generate_structured_tokens(
                         pointcloud_data.patch_coords
                     )
@@ -1881,23 +1880,20 @@ class Qwen2PointcloudPlugin(BasePlugin):
     
     def _generate_structured_tokens(self, patch_coords):
         structured_tokens = f"{self.pointcloud_start_token}"
-        # 按z,y,x顺序排序
         sorted_coords = sorted(patch_coords, key=lambda x: (x[2], x[1], x[0]))
         
         current_z, current_y = None, None
         for coord in sorted_coords:
-            z, y, x = coord[2], coord[1], coord[0]  # 假设坐标顺序为x,y,z
+            z, y, x = coord[2], coord[1], coord[0]  
             
-            # 如果z发生变化，添加层分隔符
             if z != current_z:
-                if current_z is not None:  # 第一层不添加分隔符
+                if current_z is not None:  
                     structured_tokens += f"{self.layer_sep_token}"
                 current_z = z
-                current_y = None  # 重置y
-            
-            # 如果y发生变化，添加行分隔符
+                current_y = None  
+
             if y != current_y:
-                if current_y is not None:  # 每层的第一行不添加分隔符
+                if current_y is not None:  
                     structured_tokens += f"{self.row_sep_token}"
                 current_y = y
             
@@ -1916,7 +1912,6 @@ class Qwen2PointcloudPlugin(BasePlugin):
         patch_coords_list = []
         
         for pointcloud_data in images:
-            # 如果输入是自定义点云数据结构
             if hasattr(pointcloud_data, 'patches') and hasattr(pointcloud_data, 'patch_coords'):
                 patches_list.append(pointcloud_data.patches)
                 patch_coords_list.append(pointcloud_data.patch_coords)
@@ -1944,22 +1939,14 @@ class Qwen2PointcloudPlugin(BasePlugin):
         batch_ids: list[list[int]],
         processor: Optional["MMProcessor"],
     ) -> dict[str, Union[list[int], "torch.Tensor"]]:
-        # 获取点云数据
+        
         pointcloud_data = self._regularize_images(images)
-        
-        print("\nDEBUG get_mm_inputs:")
-        print(f"  images数量: {len(images)}")
-        print(f"  pointcloud_data['point_patches']长度: {len(pointcloud_data['point_patches'])}")
-        
-        # 检查是否存在有效的点云数据
         has_valid_patches = (
             len(pointcloud_data["point_patches"]) > 0 and 
             any(len(patches) > 0 for patches in pointcloud_data["point_patches"])
         )
         
-        # 如果没有点云数据或图像为空，直接返回空字典
         if not has_valid_patches or len(images) == 0:
-            print("  ⚠️ 没有有效的点云数据，返回空字典")
             return {}
         
         point_patch_id = processor.tokenizer.convert_tokens_to_ids(self.point_patch_token)
@@ -1973,7 +1960,6 @@ class Qwen2PointcloudPlugin(BasePlugin):
 
         for batch_idx, (ids, imglen) in enumerate(zip(batch_ids, imglens)):
             patch_positions = [i for i, id in enumerate(ids) if id == point_patch_id]
-            print(f"  batch {batch_idx} 找到 {len(patch_positions)} 个点云token位置")
 
             if batch_idx < len(pointcloud_data["point_patches"]) and len(pointcloud_data["point_patches"][batch_idx]) > 0:
                 patches = pointcloud_data["point_patches"][batch_idx]
