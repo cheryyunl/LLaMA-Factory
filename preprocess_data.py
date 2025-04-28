@@ -315,19 +315,24 @@ def process_one_shard(args):
     # 创建jsonl输出路径 - 根据数据集名称和JSON索引命名
     out_jsonl = os.path.join(output_dir, f"{dataset_name}_{json_index:03d}.jsonl")
     
+    # 检查jsonl是否已存在
+    jsonl_exists = os.path.exists(out_jsonl)
+    open_mode = "a" if jsonl_exists else "w"  # 如果文件存在则追加模式
+    
     # 统计变量
     stats = {
         'pointclouds_processed': 0,
         'total_patches': 0,
         'min_patches_per_cloud': float('inf'),
         'max_patches_per_cloud': 0,
-        'failed_samples': 0
+        'failed_samples': 0,
+        'skipped_samples': 0  # 新增：跳过的样本计数
     }
     
     all_ranges = defaultdict(lambda: {'min': float('inf'), 'max': float('-inf')})
     
-    with lz4.frame.open(shard_path, "rt") as fin, open(out_jsonl, "w") as fout:
-        for line in tqdm(fin, desc=f"Processing {dataset_name}/{shard_name}"):
+    with lz4.frame.open(shard_path, "rt") as fin, open(out_jsonl, open_mode) as fout:
+        for idx, line in enumerate(tqdm(fin, desc=f"Processing {dataset_name}/{shard_name}")):
             try:
                 # 解析JSON对象
                 obj = json.loads(line)
@@ -341,6 +346,26 @@ def process_one_shard(args):
                 if not label:
                     stats['failed_samples'] += 1
                     continue  # 跳过没有标签的样本
+                
+                # 生成npz文件路径
+                obj_id = f"{dataset_name}_{idx+1:06d}"  # 使用idx确保序号一致
+                npz_path = os.path.join(npz_dir, f"{obj_id}.npz")
+                
+                # 如果npz文件已存在，跳过处理点云，但仍然写入jsonl
+                if os.path.exists(npz_path):
+                    stats['skipped_samples'] += 1
+                    
+                    # 直接构建data并写入jsonl（不重复处理点云）
+                    prompt = random.choice(PROMPTS) if use_diverse_prompts else PROMPTS[1]
+                    data = {
+                        "messages": [
+                            {"role": "user", "content": prompt},
+                            {"role": "assistant", "content": label}
+                        ],
+                        "images": [os.path.relpath(npz_path, os.path.dirname(out_jsonl))]
+                    }
+                    fout.write(json.dumps(data, ensure_ascii=False) + "\n")
+                    continue
                 
                 # 处理点云为patches，并获取坐标范围
                 patches, patch_coords, ranges = process_pointcloud_to_patches(arr, normalize=normalize)
@@ -358,8 +383,6 @@ def process_one_shard(args):
                     all_ranges[key]['max'] = max(all_ranges[key]['max'], max_val)
                 
                 # 保存为npz
-                obj_id = f"{dataset_name}_{stats['pointclouds_processed']:06d}"
-                npz_path = os.path.join(npz_dir, f"{obj_id}.npz")
                 np.savez(npz_path, patches=patches, patch_coords=patch_coords)
                 
                 # 选择prompt
@@ -378,7 +401,7 @@ def process_one_shard(args):
                 fout.write(json.dumps(data, ensure_ascii=False) + "\n")
                 
             except Exception as e:
-                print(f"Error processing sample in {shard_path}: {e}")
+                print(f"Error processing sample {idx} in {shard_path}: {e}")
                 continue
     
     # 计算平均值
@@ -392,9 +415,9 @@ def process_one_shard(args):
     stats_file = os.path.join(output_dir, f"{dataset_name}_{shard_name}_stats.json")
     with open(stats_file, "w") as f:
         json.dump({"ranges": all_ranges, "stats": stats}, f, indent=2)
-        
+    
     # 返回处理结果、范围统计和处理统计
-    result_msg = f"Processed {stats['pointclouds_processed']} pointclouds with {stats['total_patches']} patches from {shard_path}"
+    result_msg = f"Processed {stats['pointclouds_processed']} pointclouds (skipped {stats['skipped_samples']}) with {stats['total_patches']} patches from {shard_path}"
     return (result_msg, all_ranges, stats)
 
 def find_all_shards(root_dir, dataset_filter=None):
