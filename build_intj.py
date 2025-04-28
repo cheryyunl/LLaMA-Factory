@@ -141,9 +141,33 @@ def test_with_llamafactory_collator(model_path, custom_tokenizer, custom_process
     # 2. 加载tokenizer和模板
     tokenizer = custom_tokenizer
     processor = custom_processor
+    
+    # 3. 获取模板
     template = get_template_and_fix_tokenizer(tokenizer, data_args)
     
-    # 3. 创建collator
+    # 4. 获取plugin
+    pointcloud_plugin = get_mm_plugin(name="qwen2_pointcloud")
+    
+    # 5. 创建点云数据
+    point_patches = np.random.randn(3, 10, 6).astype(np.float32)  # 3个patch，每个有10个点
+    point_coords = np.array([[0,0,0], [0,1,0], [1,0,0]]).astype(np.float32)
+    pointcloud_data = PointCloudData(point_patches, point_coords)
+    
+    # 6. 创建并处理消息
+    raw_messages = [
+        {"role": "user", "content": f"Describe this point cloud: {IMAGE_PLACEHOLDER}"}
+    ]
+    
+    # 使用plugin处理消息（这会插入点云标记）
+    processed_messages = pointcloud_plugin.process_messages(
+        deepcopy(raw_messages), [pointcloud_data], [], [], processor
+    )
+    
+    # 打印处理前后的消息
+    print(f"原始消息: {raw_messages[0]['content']}")
+    print(f"处理后消息: {processed_messages[0]['content']}")
+    
+    # 7. 创建collator
     data_collator = MultiModalDataCollatorForSeq2Seq(
         tokenizer=tokenizer,
         model=None,
@@ -154,24 +178,20 @@ def test_with_llamafactory_collator(model_path, custom_tokenizer, custom_process
         pad_to_multiple_of=8
     )
     
-    # 4. 创建测试数据
-    # 使用模拟的点云数据
-    point_patches = np.random.randn(3, 10, 6).astype(np.float32)  # 3个patch，每个10个点
-    point_coords = np.array([[0,0,0], [0,1,0], [1,0,0]]).astype(np.float32)
-    pointcloud_data = PointCloudData(point_patches, point_coords)
-    
+    # 8. 创建已处理过的测试数据
+    processed_text = processed_messages[0]["content"]
     features = [
         {
-            "input_ids": tokenizer(f"Describe this point cloud: {IMAGE_PLACEHOLDER}").input_ids,
-            "attention_mask": [1] * len(tokenizer(f"Describe this point cloud: {IMAGE_PLACEHOLDER}").input_ids),
-            "labels": tokenizer("This is a cube.").input_ids,
-            "images": [pointcloud_data.patches],
+            "input_ids": tokenizer.encode(processed_text),
+            "attention_mask": [1] * len(tokenizer.encode(processed_text)),
+            "labels": tokenizer("This is a set of points in 3D space.").input_ids,
+            "images": [pointcloud_data],
             "videos": [],
             "audios": []
         }
     ]
     
-    # 5. 测试collator
+    # 9. 测试collator
     try:
         batch = data_collator(features)
         print("Collator处理成功!")
@@ -185,6 +205,8 @@ def test_with_llamafactory_collator(model_path, custom_tokenizer, custom_process
             return False
     except Exception as e:
         print(f"Collator处理失败: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
