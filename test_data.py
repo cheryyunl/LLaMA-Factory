@@ -31,8 +31,8 @@ def validate_jsonl_file(jsonl_path):
                 assert isinstance(data["images"][0], str), "image路径应为字符串"
                 
                 # 检查用户和助手消息
-                user_msg = data["messages"][0]
-                assistant_msg = data["messages"][1]
+                user_msg = data["messages"][1]
+                assistant_msg = data["messages"][2]
                 assert user_msg["role"] == "user", "第一条消息应为user"
                 assert assistant_msg["role"] == "assistant", "第二条消息应为assistant"
                 assert "<image>" in user_msg["content"], "用户消息应包含<image>标记"
