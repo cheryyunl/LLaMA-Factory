@@ -135,6 +135,12 @@ PROMPTS = [
     "<image>Please classify this 3D point cloud."
 ]
 
+# 新增：系统指令常量
+SYSTEM_PROMPT = (
+    "You are an AI assistant specialized in understanding3D point cloud data "
+    "with 6 dimensions: coordinates (x, y, z) and colors (r, g, b). "
+)
+
 def process_pointcloud_to_patches(arr, normalize=None):
     """将点云处理为patches和coordinates"""
     # 把从 buffer 来的 arr 拷贝一份，否则不可写
@@ -369,12 +375,11 @@ def process_one_shard(args):
                 # 如果npz文件已存在，跳过处理点云，但仍然写入jsonl
                 if os.path.exists(npz_path):
                     stats['skipped_samples'] += 1
-                    
-                    # 直接构建data并写入jsonl（不重复处理点云）
                     prompt = random.choice(PROMPTS) if use_diverse_prompts else PROMPTS[1]
                     data = {
                         "messages": [
-                            {"role": "user", "content": prompt},
+                            {"role": "system",    "content": SYSTEM_PROMPT},
+                            {"role": "user",      "content": prompt},
                             {"role": "assistant", "content": label}
                         ],
                         "images": [os.path.relpath(npz_path, os.path.dirname(out_jsonl))]
@@ -406,10 +411,11 @@ def process_one_shard(args):
                 # 创建LLaMA Factory格式的对话数据
                 data = {
                     "messages": [
-                        {"role": "user", "content": prompt},
+                        {"role": "system",    "content": SYSTEM_PROMPT},
+                        {"role": "user",      "content": prompt},
                         {"role": "assistant", "content": label}
                     ],
-                    "images": [os.path.relpath(npz_path, os.path.dirname(out_jsonl))]  # 使用相对路径
+                    "images": [os.path.relpath(npz_path, os.path.dirname(out_jsonl))]
                 }
                 
                 # 写入jsonl
@@ -442,7 +448,9 @@ def process_one_shard(args):
     
     # 返回处理结果、范围统计和处理统计
     result_msg = f"Processed {stats['pointclouds_processed']} pointclouds (skipped {stats['skipped_samples']}) with {stats['total_patches']} patches from {shard_path}"
-    return (result_msg, all_ranges, stats)
+    # 将 all_ranges 转为普通 dict，移除默认工厂中的 lambda，以便多进程返回值可序列化
+    plain_ranges = {k: v for k, v in all_ranges.items()}
+    return (result_msg, plain_ranges, stats)
 
 def find_all_shards(root_dir, dataset_filter=None):
     """查找所有的shard文件，可选择只返回特定数据集的shard"""

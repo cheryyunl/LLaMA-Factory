@@ -1880,11 +1880,11 @@ class Qwen2PointcloudPlugin(BasePlugin):
     
     def _generate_structured_tokens(self, patch_coords):
         structured_tokens = f"{self.pointcloud_start_token}"
-        sorted_coords = sorted(patch_coords, key=lambda x: (x[2], x[1], x[0]))
+        sorted_coords = sorted(patch_coords, key=lambda x: (x[0], x[1], x[2]))
         
         current_z, current_y = None, None
         for coord in sorted_coords:
-            z, y, x = coord[2], coord[1], coord[0]  
+            z, y, x = coord[0], coord[1], coord[2]  
             
             if z != current_z:
                 if current_z is not None:  
