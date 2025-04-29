@@ -390,6 +390,12 @@ def process_one_shard(args):
                 # 处理点云为patches，并获取坐标范围
                 patches, patch_coords, ranges = process_pointcloud_to_patches(arr, normalize=normalize)
                 
+                # 检查patches是否为空，如果为空则跳过保存
+                if len(patches) == 0:
+                    print(f"  Skipping sample {idx} - no patches generated")
+                    stats['failed_samples'] += 1  # 或者添加新的统计 'empty_patches_samples'
+                    continue
+                
                 # 更新统计信息
                 num_patches = len(patches)
                 stats['pointclouds_processed'] += 1
