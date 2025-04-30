@@ -16,6 +16,8 @@ os.makedirs(os.path.dirname(output_path), exist_ok=True)
 parquet_files = sorted(glob(os.path.join(parquet_dir, "*.parquet")))
 print(f"找到 {len(parquet_files)} 个parquet文件")
 
+DEFAULT_SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."
+
 # 估计token数量的简单函数（每个单词约1.3个token）
 def estimate_tokens(text):
     if not text:
@@ -85,6 +87,13 @@ def convert_all_files(files, max_samples=None, batch_size=5000, max_tokens=2048)
                                     "content": system_content
                                 })
                                 total_tokens += estimate_tokens(system_content)
+                        else:
+                            system_content = DEFAULT_SYSTEM_PROMPT
+                            conversation["messages"].append({
+                                "role": "system",
+                                "content": system_content
+                            })
+                            total_tokens += estimate_tokens(system_content)
                         
                         # 添加用户消息
                         if "question" in df.columns and pd.notna(row["question"]):
