@@ -79,7 +79,7 @@ def convert_all_files(files, max_samples=None, batch_size=5000, max_tokens=2048)
                         total_tokens = 0
                         
                         # 添加系统消息
-                        if "system_prompt" in df.columns and pd.notna(row["system_prompt"]):
+                        if "system_prompt" in df.columns and pd.notna(row["system_prompt"]) and row["system_prompt"].strip() != "":
                             system_content = row["system_prompt"]
                         else:
                             system_content = DEFAULT_SYSTEM_PROMPT
