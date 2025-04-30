@@ -6,6 +6,7 @@ from pathlib import Path
 from transformers import AutoConfig, AutoTokenizer
 from dataclasses import dataclass
 from copy import deepcopy
+import shutil
 
 from modeling_intj import MultimodalQwen2Config, MultimodalQwen2ForCausalLM
 
@@ -76,6 +77,23 @@ def create_multimodal_qwen2_model(base_model_path, output_path):
     with open(os.path.join(output_path, "processor_info.json"), "w") as f:
         import json
         json.dump({"type": "PointCloudProcessor"}, f)
+    
+    shutil.copy("modeling_intj.py", os.path.join(output_path, "modeling_intj.py"))
+    
+    # 创建__init__.py文件
+    init_content = """
+    from .modeling_intj import MultimodalQwen2Config, MultimodalQwen2ForCausalLM
+    from transformers.models.auto.configuration_auto import CONFIG_MAPPING
+    from transformers.models.auto.modeling_auto import MODEL_FOR_CAUSAL_LM_MAPPING
+
+    # 注册配置
+    CONFIG_MAPPING.register("multimodal_qwen2", MultimodalQwen2Config)
+    # 注册模型
+    MODEL_FOR_CAUSAL_LM_MAPPING.register(MultimodalQwen2Config, MultimodalQwen2ForCausalLM)
+    """
+
+    with open(os.path.join(output_path, "__init__.py"), "w") as f:
+        f.write(init_content)
     
     return model, tokenizer, config, processor
 
@@ -153,7 +171,6 @@ def test_with_llamafactory_collator(model_path, custom_tokenizer, custom_process
     point_coords = np.array([[0,0,0], [0,1,0], [1,0,0]]).astype(np.float32)
     pointcloud_data = PointCloudData(point_patches, point_coords)
     
-    # 6. 创建并处理消息
     raw_messages = [
         {"role": "user", "content": f"Describe this point cloud: {IMAGE_PLACEHOLDER}"}
     ]
@@ -344,8 +361,8 @@ def test_text_only_input():
 
 if __name__ == "__main__":
     # 配置路径
-    BASE_MODEL_PATH = "/pscratch/sd/c/cheryunl/qwen2_0.5b_cache"  # 或你本地的Qwen2模型路径
-    OUTPUT_PATH = "./multimodal_qwen2_model" 
+    BASE_MODEL_PATH = "/scratch/zt1/project/furongh-prj/user/cheryunl/Qwen2.5-3B-Instruct"  # 或你本地的Qwen2模型路径
+    OUTPUT_PATH = "./multimodal_qwen2.5_model" 
     
     # 创建模型
     print("创建MultimodalQwen2模型...")

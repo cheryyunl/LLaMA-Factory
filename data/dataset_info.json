@@ -704,5 +704,197 @@
       "prompt": "content"
     },
     "folder": "python"
+  },
+  "openorca_local": {                                                                                                                          
+    "file_name": "openorca.jsonl",                                                                                                   
+    "formatting": "sharegpt",                                                                                                                  
+    "columns": {                                                                                                                               
+        "messages": "messages"                                                                                                                 
+    },                                                                                                                                         
+    "tags": {                                                                                                                                  
+        "role_tag": "role",                                                                                                                    
+        "content_tag": "content",                                                                                                              
+        "user_tag": "user",                                                                                                                    
+        "assistant_tag": "assistant",                                                                                                          
+        "system_tag": "system"                                                                                                                 
+    }                                                                                                                                          
+  },
+  "uco3d": {                                                                                                                          
+    "file_name": "3d_data/uco3d.jsonl",                                                                                                   
+    "formatting": "sharegpt",                                                                                                                  
+    "columns": {                                                                                                                               
+        "messages": "messages"                                                                                                                 
+    },                                                                                                                                         
+    "tags": {                                                                                                                                  
+        "role_tag": "role",                                                                                                                    
+        "content_tag": "content",                                                                                                              
+        "user_tag": "user",                                                                                                                    
+        "assistant_tag": "assistant",                                                                                                          
+        "system_tag": "system"                                                                                                                 
+    }                                                                                                                                          
+  },
+  "shapenet": {
+    "file_name": "3d_data/shapenet.jsonl",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "images": "images"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant",
+      "system_tag": "system"    
+    }
+  },
+  "3rscan": {
+    "file_name": "3d_data/3rscan.jsonl",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "images": "images"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant",
+      "system_tag": "system"    
+    }
+  },
+  "objaverse": {
+    "file_name": "3d_data/objaverse.jsonl",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "images": "images"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant",
+      "system_tag": "system"    
+    }
+  },
+  "structured3d": {
+    "file_name": "3d_data/structured3d.jsonl",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "images": "images"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant",
+      "system_tag": "system"    
+    }
+  },
+  "scannet": {
+    "file_name": "3d_data/scannet.jsonl",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "images": "images"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant",
+      "system_tag": "system"    
+    }
+  },
+  "procthor": {
+    "file_name": "3d_data/procthor.jsonl",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "images": "images"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant",
+      "system_tag": "system"    
+    }
+  },
+  "multiscan": {
+    "file_name": "3d_data/multiscan.jsonl",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "images": "images"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant",
+      "system_tag": "system"    
+    }
+  },
+  "arkitscenes": {
+    "file_name": "3d_data/arkitscenes.jsonl",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "images": "images"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant",
+      "system_tag": "system"
+    }
+  },
+  "hm3d": {
+    "file_name": "3d_data/hm3d.jsonl",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "images": "images"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant",
+      "system_tag": "system"
+    }
+  },
+  "3dfuture": {
+    "file_name": "3d_data/3dfuture.jsonl",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "images": "images"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant",
+      "system_tag": "system"
+    }
+  },
+  "3d_data": {
+    "shapenet": "shapenet",
+    "3rscan": "3rscan",
+    "objaverse": "objaverse",
+    "structured3d": "structured3d",
+    "scannet": "scannet",
+    "uco3d": "uco3d",
+    "procthor": "procthor",
+    "multiscan": "multiscan",
+    "arkitscenes": "arkitscenes",
+    "hm3d": "hm3d",
+    "3dfuture": "3dfuture"
   }
+
 }
