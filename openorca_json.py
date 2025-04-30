@@ -7,8 +7,7 @@ from tqdm import tqdm
 
 # 数据集路径
 parquet_dir = "/scratch/zt1/project/furongh-prj/user/cheryunl/OpenOrca"
-save_dir = "/scratch/zt1/project/furongh-prj/user/cheryunl"
-output_path = os.path.join(save_dir, "openorca_gpt4.jsonl")
+output_path = os.path.join(parquet_dir, "/scratch/zt1/project/furongh-prj/user/cheryunl/LLaMA-Factory/data/openorca.jsonl")
 
 # 创建输出目录（如果不存在）
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -17,9 +16,16 @@ os.makedirs(os.path.dirname(output_path), exist_ok=True)
 parquet_files = sorted(glob(os.path.join(parquet_dir, "*.parquet")))
 print(f"找到 {len(parquet_files)} 个parquet文件")
 
+# 估计token数量的简单函数（每个单词约1.3个token）
+def estimate_tokens(text):
+    if not text:
+        return 0
+    return int(len(text.split()) * 1.3)
+
 # 转换全部文件并生成JSONL文件（每行一个JSON对象）
-def convert_all_files(files, max_samples=None, batch_size=5000):
+def convert_all_files(files, max_samples=None, batch_size=5000, max_tokens=2048):
     samples_count = 0
+    filtered_count = 0
     start_time = time.time()
     
     # 添加对dataset_info.json的修改提示
@@ -68,20 +74,22 @@ def convert_all_files(files, max_samples=None, batch_size=5000):
                         
                         # 初始化对话字典
                         conversation = {"messages": []}
+                        total_tokens = 0
                         
                         # 添加系统消息（如果存在）
-                        if "system_prompt" in df.columns:
+                        if "system_prompt" in df.columns and pd.notna(row["system_prompt"]):
                             system_content = row["system_prompt"]
                             if isinstance(system_content, str) and system_content.strip():
                                 conversation["messages"].append({
                                     "role": "system",
                                     "content": system_content
                                 })
+                                total_tokens += estimate_tokens(system_content)
                         
                         # 添加用户消息
-                        if "question" in df.columns:
+                        if "question" in df.columns and pd.notna(row["question"]):
                             user_content = row["question"]
-                        elif "prompt" in df.columns:
+                        elif "prompt" in df.columns and pd.notna(row["prompt"]):
                             user_content = row["prompt"]
                         else:
                             continue  # 跳过没有用户消息的行
@@ -90,11 +98,12 @@ def convert_all_files(files, max_samples=None, batch_size=5000):
                             "role": "user",
                             "content": user_content
                         })
+                        total_tokens += estimate_tokens(user_content)
                         
                         # 添加助手消息
-                        if "response" in df.columns:
+                        if "response" in df.columns and pd.notna(row["response"]):
                             assistant_content = row["response"]
-                        elif "completion" in df.columns:
+                        elif "completion" in df.columns and pd.notna(row["completion"]):
                             assistant_content = row["completion"]
                         else:
                             continue  # 跳过没有助手消息的行
@@ -103,6 +112,12 @@ def convert_all_files(files, max_samples=None, batch_size=5000):
                             "role": "assistant",
                             "content": assistant_content
                         })
+                        total_tokens += estimate_tokens(assistant_content)
+                        
+                        # 跳过过长的对话
+                        if max_tokens > 0 and total_tokens > max_tokens:
+                            filtered_count += 1
+                            continue
                         
                         # 将对话写入JSONL文件
                         out_file.write(json.dumps(conversation, ensure_ascii=False) + '\n')
@@ -112,7 +127,7 @@ def convert_all_files(files, max_samples=None, batch_size=5000):
                     elapsed_time = time.time() - start_time
                     if elapsed_time > 0:
                         speed = samples_count / elapsed_time
-                        print(f"已处理 {samples_count} 条记录，速度：{speed:.2f} 条/秒")
+                        print(f"已处理 {samples_count} 条记录，过滤 {filtered_count} 条，速度：{speed:.2f} 条/秒")
                 
                 if max_samples and samples_count >= max_samples:
                     break
@@ -122,7 +137,8 @@ def convert_all_files(files, max_samples=None, batch_size=5000):
     
     # 显示样例（读取第一行作为示例）
     print("\n转换完成！")
-    print(f"总共转换了 {samples_count} 条记录，保存到 {output_path}")
+    print(f"总共转换了 {samples_count} 条记录，过滤了 {filtered_count} 条过长记录")
+    print(f"保存到 {output_path}")
     
     try:
         with open(output_path, 'r', encoding='utf-8') as f:
@@ -131,6 +147,19 @@ def convert_all_files(files, max_samples=None, batch_size=5000):
                 print("\n数据样例 (第一条记录):")
                 sample = json.loads(first_line)
                 print(json.dumps(sample, ensure_ascii=False, indent=2))
+                
+                # 检查是否有system role
+                has_system = False
+                if "messages" in sample:
+                    for msg in sample["messages"]:
+                        if msg.get("role") == "system":
+                            has_system = True
+                            break
+                
+                if has_system:
+                    print("\n✓ 样例中包含system角色消息")
+                else:
+                    print("\n✗ 警告：样例中没有system角色消息，请确认数据中是否有system_prompt列")
     except Exception as e:
         print(f"读取样例时出错: {e}")
     
@@ -141,6 +170,7 @@ def convert_all_files(files, max_samples=None, batch_size=5000):
 
 # 执行转换，可以设置max_samples限制样本数量
 # 如果要转换所有数据，设置max_samples=None
-convert_all_files(parquet_files, max_samples=None, batch_size=5000)  # 调整参数
+# max_tokens=2048表示过滤掉估计超过2048个token的对话
+convert_all_files(parquet_files, max_samples=None, batch_size=5000, max_tokens=2048)
 
 print("转换完成！")
