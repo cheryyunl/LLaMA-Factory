@@ -78,22 +78,17 @@ def convert_all_files(files, max_samples=None, batch_size=5000, max_tokens=2048)
                         conversation = {"messages": []}
                         total_tokens = 0
                         
-                        # 添加系统消息（如果存在）
+                        # 添加系统消息
                         if "system_prompt" in df.columns and pd.notna(row["system_prompt"]):
                             system_content = row["system_prompt"]
-                            if isinstance(system_content, str) and system_content.strip():
-                                conversation["messages"].append({
-                                    "role": "system",
-                                    "content": system_content
-                                })
-                                total_tokens += estimate_tokens(system_content)
                         else:
                             system_content = DEFAULT_SYSTEM_PROMPT
-                            conversation["messages"].append({
-                                "role": "system",
-                                "content": system_content
-                            })
-                            total_tokens += estimate_tokens(system_content)
+
+                        conversation["messages"].append({
+                            "role": "system",
+                            "content": system_content
+                        })
+                        total_tokens += estimate_tokens(system_content)
                         
                         # 添加用户消息
                         if "question" in df.columns and pd.notna(row["question"]):
@@ -157,18 +152,6 @@ def convert_all_files(files, max_samples=None, batch_size=5000, max_tokens=2048)
                 sample = json.loads(first_line)
                 print(json.dumps(sample, ensure_ascii=False, indent=2))
                 
-                # 检查是否有system role
-                has_system = False
-                if "messages" in sample:
-                    for msg in sample["messages"]:
-                        if msg.get("role") == "system":
-                            has_system = True
-                            break
-                
-                if has_system:
-                    print("\n✓ 样例中包含system角色消息")
-                else:
-                    print("\n✗ 警告：样例中没有system角色消息，请确认数据中是否有system_prompt列")
     except Exception as e:
         print(f"读取样例时出错: {e}")
     
