@@ -13,7 +13,8 @@ deepspeed: examples/deepspeed/ds_z3_config.json
 
 ### dataset
 dataset: openorca_local,3d_data
-dataset_sample_ratio: 0.3,0.7
+mix_strategy: interleave_over  
+interleave_probs: 0.3,0.7
 template: qwen2_pointcloud
 cutoff_len: 2048
 max_samples: -1
