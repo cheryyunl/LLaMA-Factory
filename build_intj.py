@@ -361,8 +361,8 @@ def test_text_only_input():
 
 if __name__ == "__main__":
     # 配置路径
-    BASE_MODEL_PATH = "/scratch/zt1/project/furongh-prj/user/cheryunl/Qwen2.5-3B-Instruct"  # 或你本地的Qwen2模型路径
-    OUTPUT_PATH = "./multimodal_qwen2.5_model" 
+    BASE_MODEL_PATH = "/scratch/zt1/project/furongh-prj/user/cheryunl/Qwen2.5-7B-Instruct"  # 或你本地的Qwen2模型路径
+    OUTPUT_PATH = "./multimodal_qwen2.5_7b_model" 
     
     # 创建模型
     print("创建MultimodalQwen2模型...")
