@@ -1813,7 +1813,7 @@ class VideoLlavaPlugin(BasePlugin):
 
 @dataclass
 class Qwen2PointcloudPlugin(BasePlugin):
-    def __init__(self, image_token=None, video_token=None, audio_token=None):
+    def __init__(self, image_token="<point_cloud>", video_token=None, audio_token=None):
         super().__init__(image_token, video_token, audio_token)
         self.pointcloud_start_token = "<pointcloud>"
         self.pointcloud_end_token = "</pointcloud>"
@@ -1844,6 +1844,7 @@ class Qwen2PointcloudPlugin(BasePlugin):
         """Process messages and replace point cloud placeholders with structured token sequences"""
         processed_pointclouds = 0
         messages = deepcopy(messages)
+        print(f"images: {images}")
         
         for message in messages:
             content = message["content"]

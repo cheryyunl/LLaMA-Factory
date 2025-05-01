@@ -1464,7 +1464,7 @@ register_template(
     format_system=StringFormatter(slots=["<|im_start|>system\n{{content}}<|im_end|>\n"]),
     default_system="You are a helpful assistant.",
     stop_words=["<|im_end|>"],
-    mm_plugin=get_mm_plugin(name="qwen2_pointcloud") 
+    mm_plugin=get_mm_plugin(name="qwen2_pointcloud", image_token="<point_cloud>") 
 )
 
 
