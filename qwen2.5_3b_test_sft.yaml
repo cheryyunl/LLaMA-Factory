@@ -12,14 +12,14 @@ freeze_language_model: false
 deepspeed: examples/deepspeed/ds_z3_config.json
 
 ### dataset
-dataset: openorca_local, uco3d
+dataset: openorca_local,uco3d,objaverse,procthor,structured3d,shapenet,arkitscenes,hm3d,3dfuture,scannet,multiscan,3rscan
 streaming: false
 mix_strategy: concat
 template: qwen2_pointcloud
 cutoff_len: 2048
 preprocessing_num_workers: 16
 dataloader_num_workers: 4
-tokenized_path: data/tokenized_uco3d
+tokenized_path: data/tokenized_object_data
 overwrite_cache: false
 # interleave_probs: 0.2,0.12,0.12,0.08,0.075,0.065,0.06,0.06,0.06,0.055,0.055,0.05
 

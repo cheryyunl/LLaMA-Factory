@@ -1868,6 +1868,9 @@ class Qwen2PointcloudPlugin(BasePlugin):
                             keys = list(npz_data.keys())
                             patches = npz_data[keys[0]]
                             patch_coords = npz_data[keys[1]]
+                else:
+                    patches = pointcloud_data['patches']
+                    patch_coords = pointcloud_data['patch_coords']
                 
                 if patch_coords is not None:
                     structured_tokens = self._generate_structured_tokens(patch_coords)
