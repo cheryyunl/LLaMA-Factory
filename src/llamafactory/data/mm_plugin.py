@@ -1844,7 +1844,6 @@ class Qwen2PointcloudPlugin(BasePlugin):
         """Process messages and replace point cloud placeholders with structured token sequences"""
         processed_pointclouds = 0
         messages = deepcopy(messages)
-        print(f"images: {images}")
         
         for message in messages:
             content = message["content"]
