@@ -13,15 +13,15 @@ deepspeed: examples/deepspeed/ds_z3_config.json
 
 ### dataset
 dataset: openorca_local,objaverse,procthor,structured3d,uco3d,shapenet,arkitscenes,hm3d,3dfuture,scannet,multiscan,3rscan
-streaming: true
-mix_strategy: interleave_over
-interleave_probs: 0.2,0.12,0.12,0.08,0.075,0.065,0.06,0.06,0.06,0.055,0.055,0.05
+streaming: false
+mix_strategy: concat
 template: qwen2_pointcloud
 cutoff_len: 2048
-overwrite_cache: true
+overwrite_cache: false
 preprocessing_num_workers: 16
 dataloader_num_workers: 4
 tokenized_path: data/tokenized_data
+# interleave_probs: 0.2,0.12,0.12,0.08,0.075,0.065,0.06,0.06,0.06,0.055,0.055,0.05
 
 ### output
 output_dir: saves/qwen2.5_3d/full/sft
@@ -44,7 +44,7 @@ ddp_timeout: 180000000
 resume_from_checkpoint: null
 
 ### eval
-val_size: 5000
+val_size: 0.05
 per_device_eval_batch_size: 4
 eval_strategy: steps
 eval_steps: 500
