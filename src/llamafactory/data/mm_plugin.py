@@ -2009,7 +2009,9 @@ class Qwen2PointcloudPlugin(BasePlugin):
             point_patches = torch.tensor(np.stack(flattened_patches), dtype=torch.float)
         else:
             point_patches = torch.zeros((1, 512*6), dtype=torch.float)
-        
+        print("point_patches.shape", point_patches.shape)
+        print("point_patch_indices.shape", point_patch_indices.shape)
+        print("point_patch_indices", point_patch_indices)
         result = {
             "point_patch_indices": point_patch_indices,
             "point_patches": point_patches
