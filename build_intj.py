@@ -359,6 +359,105 @@ def test_text_only_input():
     
     return True
 
+def test_plugin_with_real_data(npz_file_path):
+    """测试plugin处理真实点云数据的能力"""
+    import numpy as np
+    from llamafactory.extras.constants import IMAGE_PLACEHOLDER
+    
+    print(f"\n===== 测试plugin处理真实点云数据 =====")
+    print(f"加载文件: {npz_file_path}")
+    
+    # 1. 加载npz文件数据
+    try:
+        data = np.load(npz_file_path, allow_pickle=True)
+        print(f"成功加载NPZ文件。可用键: {data.files}")
+        
+        # 2. 提取点云数据
+        if 'patches' in data and 'patch_coords' in data:
+            patches = data['patches']
+            patch_coords = data['patch_coords']
+            print(f"成功找到patches和patch_coords键")
+        else:
+            # 显示所有可用键
+            print(f"警告：未找到'patches'和'patch_coords'，文件中可用键: {data.files}")
+            # 尝试常见的替代键名
+            for p_key in ['points', 'point_patches', 'cloud_patches']:
+                if p_key in data:
+                    patches = data[p_key]
+                    print(f"使用替代键 '{p_key}' 作为patches")
+                    break
+            for c_key in ['coords', 'coordinates', 'positions']:
+                if c_key in data:
+                    patch_coords = data[c_key]
+                    print(f"使用替代键 '{c_key}' 作为patch_coords")
+                    break
+            if 'patches' not in locals() or 'patch_coords' not in locals():
+                raise ValueError(f"无法在NPZ文件中找到点云数据")
+        
+        # 3. 创建PointCloudData对象
+        print(f"\n点云数据：")
+        print(f"- patches类型: {type(patches)}, 形状: {patches.shape if hasattr(patches, 'shape') else 'unknown'}")
+        print(f"- patch_coords类型: {type(patch_coords)}, 形状: {patch_coords.shape if hasattr(patch_coords, 'shape') else 'unknown'}")
+        
+        pointcloud_data = PointCloudData(patches, patch_coords)
+        print(f"\n创建的PointCloudData对象：")
+        print(f"- 类型: {type(pointcloud_data)}")
+        print(f"- hasattr(patches): {hasattr(pointcloud_data, 'patches')}")
+        print(f"- hasattr(patch_coords): {hasattr(pointcloud_data, 'patch_coords')}")
+        print(f"- patches数据类型: {type(pointcloud_data.patches)}")
+        print(f"- patch_coords数据类型: {type(pointcloud_data.patch_coords)}")
+        
+        # 4. 检查plugin及其方法
+        pointcloud_plugin = get_mm_plugin(name="qwen2_pointcloud")
+        print(f"\nPlugin信息：")
+        print(f"- Plugin类型: {type(pointcloud_plugin)}")
+        print(f"- hasattr(process_messages): {hasattr(pointcloud_plugin, 'process_messages')}")
+        print(f"- hasattr(_generate_structured_tokens): {hasattr(pointcloud_plugin, '_generate_structured_tokens')}")
+        
+        # 5. 测试_generate_structured_tokens方法
+        if hasattr(pointcloud_plugin, '_generate_structured_tokens'):
+            try:
+                tokens = pointcloud_plugin._generate_structured_tokens(pointcloud_data.patch_coords)
+                print(f"\n生成的结构化标记: {tokens}")
+                patch_count = tokens.count("<point_patch>")
+                print(f"标记中的<point_patch>数量: {patch_count}")
+            except Exception as e:
+                print(f"_generate_structured_tokens失败: {e}")
+                import traceback
+                traceback.print_exc()
+        
+        # 6. 测试完整消息处理
+        tokenizer = AutoTokenizer.from_pretrained(OUTPUT_PATH)
+        processor = PointCloudProcessor(tokenizer)
+        test_message = {"role": "user", "content": f"Describe this point cloud: {IMAGE_PLACEHOLDER}"}
+        
+        try:
+            processed_messages = pointcloud_plugin.process_messages(
+                [deepcopy(test_message)], [pointcloud_data], [], [], processor
+            )
+            
+            print(f"\n处理结果：")
+            print(f"原始消息: {test_message['content']}")
+            print(f"处理后消息: {processed_messages[0]['content']}")
+            
+            # 计算patch数量
+            processed_content = processed_messages[0]['content']
+            patch_count = processed_content.count("<point_patch>")
+            print(f"处理后消息中的<point_patch>数量: {patch_count}")
+            
+            return True
+        except Exception as e:
+            print(f"\n消息处理失败: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    except Exception as e:
+        print(f"加载或处理文件失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
 if __name__ == "__main__":
     # 配置路径
     BASE_MODEL_PATH = "/scratch/zt1/project/furongh-prj/user/cheryunl/Qwen2.5-7B-Instruct"  # 或你本地的Qwen2模型路径
@@ -385,3 +484,7 @@ if __name__ == "__main__":
     if success:
         print("\n测试纯文本输入...")
         test_text_only_input()
+
+    if success:
+        print("\n测试plugin处理真实点云数据...")
+        test_plugin_with_real_data("data/objaverse/patches_objects.shard_000/objaverse_000001.npz")
