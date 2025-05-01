@@ -217,7 +217,3 @@ def load_model(
             print(f"name: {name}, dtype: {param.dtype}, device: {param.device}, trainable: {param.requires_grad}")
 
     return model
-
-
-CONFIG_MAPPING.register("multimodal_qwen2", MultimodalQwen2Config)
-MODEL_FOR_CAUSAL_LM_MAPPING.register(MultimodalQwen2Config, MultimodalQwen2ForCausalLM)
