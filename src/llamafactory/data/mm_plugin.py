@@ -1840,6 +1840,7 @@ class Qwen2PointcloudPlugin(BasePlugin):
         audios: list["AudioInput"],
         processor: Optional["MMProcessor"],
     ) -> list[dict[str, str]]:
+        
         """Process messages and replace point cloud placeholders with structured token sequences"""
         processed_pointclouds = 0
         messages = deepcopy(messages)
@@ -1857,10 +1858,17 @@ class Qwen2PointcloudPlugin(BasePlugin):
                 
                 # Generate structured token sequence based on point cloud data
                 if hasattr(pointcloud_data, 'patches') and hasattr(pointcloud_data, 'patch_coords'):
-                    structured_tokens = self._generate_structured_tokens(
-                        pointcloud_data.patch_coords
-                    )
-                    content = content.replace(IMAGE_PLACEHOLDER, structured_tokens, 1)
+                    patch_coords = pointcloud_data.patch_coords
+                elif isinstance(pointcloud_data, dict) and 'patch_coords' in pointcloud_data:
+                    patch_coords = pointcloud_data['patch_coords']
+                elif isinstance(pointcloud_data, dict) and 'patches' in pointcloud_data and 'patch_coords' in pointcloud_data:
+                    patch_coords = pointcloud_data['patch_coords']
+                else:
+                    print(f"Unrecognized point cloud data format: {type(pointcloud_data)}")
+                    patch_coords = None
+                
+                if patch_coords is not None:
+                    structured_tokens = self._generate_structured_tokens(patch_coords)
                 else:
                     # Fall back to a simple token sequence
                     content = content.replace(
@@ -1869,13 +1877,11 @@ class Qwen2PointcloudPlugin(BasePlugin):
                         1
                     )
                 
+                content = content.replace(IMAGE_PLACEHOLDER, structured_tokens, 1)
                 processed_pointclouds += 1
             
             message["content"] = content
         
-        if len(images) != processed_pointclouds:
-            raise ValueError(f"Number of point cloud inputs ({len(images)}) doesn't match the number of {IMAGE_PLACEHOLDER} tokens ({processed_pointclouds}).")
-            
         return messages
     
     def _generate_structured_tokens(self, patch_coords):
