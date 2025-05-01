@@ -17,7 +17,6 @@ mix_strategy: interleave_over
 interleave_probs: 0.2,0.12,0.12,0.08,0.075,0.065,0.06,0.06,0.06,0.055,0.055,0.05
 template: qwen2_pointcloud
 cutoff_len: 2048
-max_samples: -1
 overwrite_cache: true
 preprocessing_num_workers: 16
 dataloader_num_workers: 4
