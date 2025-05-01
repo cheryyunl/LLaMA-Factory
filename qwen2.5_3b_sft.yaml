@@ -12,7 +12,7 @@ freeze_language_model: false
 deepspeed: examples/deepspeed/ds_z3_config.json
 
 ### dataset
-dataset: objaverse
+dataset: openorca_local,objaverse,procthor,structured3d,shapenet,arkitscenes,hm3d,3dfuture,scannet,multiscan,3rscan
 streaming: false
 mix_strategy: concat
 template: qwen2_pointcloud
@@ -33,7 +33,7 @@ save_only_model: false
 report_to: wandb
 
 ### train
-per_device_train_batch_size: 4
+per_device_train_batch_size: 8
 gradient_accumulation_steps: 8
 learning_rate: 1.0e-5
 num_train_epochs: 3.0
@@ -45,6 +45,6 @@ resume_from_checkpoint: null
 
 ### eval
 val_size: 0.05
-per_device_eval_batch_size: 4
+per_device_eval_batch_size: 8
 eval_strategy: steps
 eval_steps: 500
