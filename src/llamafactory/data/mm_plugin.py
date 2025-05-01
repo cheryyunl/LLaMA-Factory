@@ -1918,13 +1918,22 @@ class Qwen2PointcloudPlugin(BasePlugin):
         patch_coords_list = []
         
         for pointcloud_data in images:
-            if hasattr(pointcloud_data, 'patches') and hasattr(pointcloud_data, 'patch_coords'):
-                patches_list.append(pointcloud_data.patches)
-                patch_coords_list.append(pointcloud_data.patch_coords)
-            elif isinstance(pointcloud_data, dict) and 'patches' in pointcloud_data and 'patch_coords' in pointcloud_data:
-                patches_list.append(pointcloud_data['patches'])
-                patch_coords_list.append(pointcloud_data['patch_coords'])
-            else:
+            # Try multiple ways to access the data
+            try:
+                if hasattr(pointcloud_data, 'patches') and hasattr(pointcloud_data, 'patch_coords'):
+                    patches_list.append(pointcloud_data.patches)
+                    patch_coords_list.append(pointcloud_data.patch_coords)
+                elif isinstance(pointcloud_data, dict):
+                    patches = pointcloud_data.get('patches', [])
+                    coords = pointcloud_data.get('patch_coords', [])
+                    patches_list.append(patches)
+                    patch_coords_list.append(coords)
+                else:
+                    print(f"Warning: Unknown point cloud format: {type(pointcloud_data)}")
+                    patches_list.append([])
+                    patch_coords_list.append([])
+            except Exception as e:
+                print(f"Error processing point cloud data: {e}")
                 patches_list.append([])
                 patch_coords_list.append([])
         
