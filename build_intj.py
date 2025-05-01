@@ -3,13 +3,12 @@ import os
 import torch
 import numpy as np
 from pathlib import Path
-from transformers import AutoConfig, AutoTokenizer
+from transformers import AutoConfig, AutoTokenizer, AutoModelForCausalLM
 from dataclasses import dataclass
 from copy import deepcopy
 import shutil
 
 from modeling_intj import MultimodalQwen2Config, MultimodalQwen2ForCausalLM
-
 # 导入LLaMA Factory相关模块
 from llamafactory.model.loader import load_tokenizer
 from llamafactory.hparams import ModelArguments, DataArguments
@@ -466,6 +465,8 @@ if __name__ == "__main__":
     # 创建模型
     print("创建MultimodalQwen2模型...")
     # model, tokenizer, config, processor = create_multimodal_qwen2_model(BASE_MODEL_PATH, OUTPUT_PATH)
+    tokenizer = AutoTokenizer.from_pretrained("./multimodal_qwen2.5_3b_model", trust_remote_code=True)
+    model = AutoModelForCausalLM.from_pretrained("./multimodal_qwen2.5_3b_model", trust_remote_code=True)
     print(f"✅ 模型已保存到 {OUTPUT_PATH}")
     
     # 测试模型
