@@ -460,13 +460,13 @@ def test_plugin_with_real_data(npz_file_path):
 if __name__ == "__main__":
     # 配置路径
     BASE_MODEL_PATH = "/scratch/zt1/project/furongh-prj/user/cheryunl/Qwen2.5-7B-Instruct"  # 或你本地的Qwen2模型路径
-    OUTPUT_PATH = "./multimodal_qwen2.5_7b_model" 
+    OUTPUT_PATH = "/scratch/zt1/project/furongh-prj/user/cheryunl/LLaMA-Factory/multimodal_qwen2.5_7b_model" 
     
     # 创建模型
     print("创建MultimodalQwen2模型...")
     # model, tokenizer, config, processor = create_multimodal_qwen2_model(BASE_MODEL_PATH, OUTPUT_PATH)
-    tokenizer = AutoTokenizer.from_pretrained("./multimodal_qwen2.5_3b_model", trust_remote_code=True)
-    model = AutoModelForCausalLM.from_pretrained("./multimodal_qwen2.5_3b_model", trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(OUTPUT_PATH, trust_remote_code=True)
+    model = AutoModelForCausalLM.from_pretrained(OUTPUT_PATH, trust_remote_code=True)
     print(f"✅ 模型已保存到 {OUTPUT_PATH}")
     
     # 测试模型
