@@ -1857,15 +1857,17 @@ class Qwen2PointcloudPlugin(BasePlugin):
                 pointcloud_data = images[processed_pointclouds]
                 
                 # Generate structured token sequence based on point cloud data
-                if hasattr(pointcloud_data, 'patches') and hasattr(pointcloud_data, 'patch_coords'):
-                    patch_coords = pointcloud_data.patch_coords
-                elif isinstance(pointcloud_data, dict) and 'patch_coords' in pointcloud_data:
-                    patch_coords = pointcloud_data['patch_coords']
-                elif isinstance(pointcloud_data, dict) and 'patches' in pointcloud_data and 'patch_coords' in pointcloud_data:
-                    patch_coords = pointcloud_data['patch_coords']
-                else:
-                    print(f"Unrecognized point cloud data format: {type(pointcloud_data)}")
-                    patch_coords = None
+                if isinstance(pointcloud_data, str):
+                    npz_data = np.load(pointcloud_data)
+                    patches = npz_data.get('patches', None)
+                    patch_coords = npz_data.get('patch_coords', None)
+                    
+                    if patches is None or patch_coords is None:
+                        print(f"NPZ file keys: {list(npz_data.keys())}")
+                        if len(npz_data.keys()) >= 2:
+                            keys = list(npz_data.keys())
+                            patches = npz_data[keys[0]]
+                            patch_coords = npz_data[keys[1]]
                 
                 if patch_coords is not None:
                     structured_tokens = self._generate_structured_tokens(patch_coords)
@@ -1918,37 +1920,31 @@ class Qwen2PointcloudPlugin(BasePlugin):
         patch_coords_list = []
         
         for pointcloud_data in images:
-            # Try multiple ways to access the data
-            try:
-                if isinstance(pointcloud_data, str):
-                    npz_data = np.load(pointcloud_data)
-                    patches = npz_data.get('patches', None)
-                    patch_coords = npz_data.get('patch_coords', None)
-                    
-                    if patches is None or patch_coords is None:
-                        print(f"NPZ file keys: {list(npz_data.keys())}")
-                        if len(npz_data.keys()) >= 2:
-                            keys = list(npz_data.keys())
-                            patches = npz_data[keys[0]]
-                            patch_coords = npz_data[keys[1]]
-                    
-                    patches_list.append(patches)
-                    patch_coords_list.append(patch_coords)
+            if isinstance(pointcloud_data, str):
+                npz_data = np.load(pointcloud_data)
+                patches = npz_data.get('patches', None)
+                patch_coords = npz_data.get('patch_coords', None)
                 
-                elif hasattr(pointcloud_data, 'patches') and hasattr(pointcloud_data, 'patch_coords'):
-                    patches_list.append(pointcloud_data.patches)
-                    patch_coords_list.append(pointcloud_data.patch_coords)
-                elif isinstance(pointcloud_data, dict):
-                    patches = pointcloud_data.get('patches', [])
-                    coords = pointcloud_data.get('patch_coords', [])
-                    patches_list.append(patches)
-                    patch_coords_list.append(coords)
-                else:
-                    print(f"Warning: Unknown point cloud format: {type(pointcloud_data)}")
-                    patches_list.append([])
-                    patch_coords_list.append([])
-            except Exception as e:
-                print(f"Error processing point cloud data: {e}")
+                if patches is None or patch_coords is None:
+                    print(f"NPZ file keys: {list(npz_data.keys())}")
+                    if len(npz_data.keys()) >= 2:
+                        keys = list(npz_data.keys())
+                        patches = npz_data[keys[0]]
+                        patch_coords = npz_data[keys[1]]
+                
+                patches_list.append(patches)
+                patch_coords_list.append(patch_coords)
+            
+            elif hasattr(pointcloud_data, 'patches') and hasattr(pointcloud_data, 'patch_coords'):
+                patches_list.append(pointcloud_data.patches)
+                patch_coords_list.append(pointcloud_data.patch_coords)
+            elif isinstance(pointcloud_data, dict):
+                patches = pointcloud_data.get('patches', [])
+                coords = pointcloud_data.get('patch_coords', [])
+                patches_list.append(patches)
+                patch_coords_list.append(coords)
+            else:
+                print(f"Warning: Unknown point cloud format: {type(pointcloud_data)}")
                 patches_list.append([])
                 patch_coords_list.append([])
         
