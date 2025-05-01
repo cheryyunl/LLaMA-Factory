@@ -720,7 +720,7 @@
     }                                                                                                                                          
   },
   "uco3d": {                                                                                                                          
-    "file_name": "3d_data/uco3d.jsonl",                                                                                                   
+    "file_name": "uco3d.jsonl",                                                                                                   
     "formatting": "sharegpt",                                                                                                                  
     "columns": {                                                                                                                               
         "messages": "messages"                                                                                                                 
@@ -734,7 +734,7 @@
     }                                                                                                                                          
   },
   "shapenet": {
-    "file_name": "3d_data/shapenet.jsonl",
+    "file_name": "shapenet.jsonl",
     "formatting": "sharegpt",
     "columns": {
       "messages": "messages",
@@ -749,7 +749,7 @@
     }
   },
   "3rscan": {
-    "file_name": "3d_data/3rscan.jsonl",
+    "file_name": "3rscan.jsonl",
     "formatting": "sharegpt",
     "columns": {
       "messages": "messages",
@@ -764,7 +764,7 @@
     }
   },
   "objaverse": {
-    "file_name": "3d_data/objaverse.jsonl",
+    "file_name": "objaverse.jsonl",
     "formatting": "sharegpt",
     "columns": {
       "messages": "messages",
@@ -779,7 +779,7 @@
     }
   },
   "structured3d": {
-    "file_name": "3d_data/structured3d.jsonl",
+    "file_name": "structured3d.jsonl",
     "formatting": "sharegpt",
     "columns": {
       "messages": "messages",
@@ -794,7 +794,7 @@
     }
   },
   "scannet": {
-    "file_name": "3d_data/scannet.jsonl",
+    "file_name": "scannet.jsonl",
     "formatting": "sharegpt",
     "columns": {
       "messages": "messages",
@@ -809,7 +809,7 @@
     }
   },
   "procthor": {
-    "file_name": "3d_data/procthor.jsonl",
+    "file_name": "procthor.jsonl",
     "formatting": "sharegpt",
     "columns": {
       "messages": "messages",
@@ -824,7 +824,7 @@
     }
   },
   "multiscan": {
-    "file_name": "3d_data/multiscan.jsonl",
+    "file_name": "multiscan.jsonl",
     "formatting": "sharegpt",
     "columns": {
       "messages": "messages",
@@ -839,7 +839,7 @@
     }
   },
   "arkitscenes": {
-    "file_name": "3d_data/arkitscenes.jsonl",
+    "file_name": "arkitscenes.jsonl",
     "formatting": "sharegpt",
     "columns": {
       "messages": "messages",
@@ -854,7 +854,7 @@
     }
   },
   "hm3d": {
-    "file_name": "3d_data/hm3d.jsonl",
+    "file_name": "hm3d.jsonl",
     "formatting": "sharegpt",
     "columns": {
       "messages": "messages",
@@ -869,7 +869,7 @@
     }
   },
   "3dfuture": {
-    "file_name": "3d_data/3dfuture.jsonl",
+    "file_name": "3dfuture.jsonl",
     "formatting": "sharegpt",
     "columns": {
       "messages": "messages",
@@ -883,18 +883,3 @@
       "system_tag": "system"
     }
   },
-  "3d_data": {
-    "shapenet": "shapenet",
-    "3rscan": "3rscan",
-    "objaverse": "objaverse",
-    "structured3d": "structured3d",
-    "scannet": "scannet",
-    "uco3d": "uco3d",
-    "procthor": "procthor",
-    "multiscan": "multiscan",
-    "arkitscenes": "arkitscenes",
-    "hm3d": "hm3d",
-    "3dfuture": "3dfuture"
-  }
-
-}
