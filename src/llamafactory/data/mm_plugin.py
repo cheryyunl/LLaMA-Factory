@@ -1920,7 +1920,22 @@ class Qwen2PointcloudPlugin(BasePlugin):
         for pointcloud_data in images:
             # Try multiple ways to access the data
             try:
-                if hasattr(pointcloud_data, 'patches') and hasattr(pointcloud_data, 'patch_coords'):
+                if isinstance(pointcloud_data, str):
+                    npz_data = np.load(pointcloud_data)
+                    patches = npz_data.get('patches', None)
+                    patch_coords = npz_data.get('patch_coords', None)
+                    
+                    if patches is None or patch_coords is None:
+                        print(f"NPZ file keys: {list(npz_data.keys())}")
+                        if len(npz_data.keys()) >= 2:
+                            keys = list(npz_data.keys())
+                            patches = npz_data[keys[0]]
+                            patch_coords = npz_data[keys[1]]
+                    
+                    patches_list.append(patches)
+                    patch_coords_list.append(patch_coords)
+                
+                elif hasattr(pointcloud_data, 'patches') and hasattr(pointcloud_data, 'patch_coords'):
                     patches_list.append(pointcloud_data.patches)
                     patch_coords_list.append(pointcloud_data.patch_coords)
                 elif isinstance(pointcloud_data, dict):
