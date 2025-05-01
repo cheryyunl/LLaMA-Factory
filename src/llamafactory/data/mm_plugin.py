@@ -1975,7 +1975,8 @@ class Qwen2PointcloudPlugin(BasePlugin):
         if not has_valid_patches or len(images) == 0:
             return {}
         
-        point_patch_id = processor.tokenizer.convert_tokens_to_ids(self.point_patch_token)
+        # point_patch_id = processor.tokenizer.convert_tokens_to_ids(self.point_patch_token)
+        point_patch_id = 151666 
 
         batch_size = len(batch_ids)
         max_length = max(len(ids) for ids in batch_ids)
@@ -1999,26 +2000,16 @@ class Qwen2PointcloudPlugin(BasePlugin):
                 all_patches.extend(patches)
         
         if all_patches:
-
-            try:
-                max_points = max(p.shape[0] if len(p.shape) > 0 else 0 for p in all_patches)
-                max_features = max(p.shape[1] if len(p.shape) > 1 else 0 for p in all_patches)
-                padded_patches = []
-                for patch in all_patches:
-                    if len(patch.shape) == 0:
-                        padded_patch = np.zeros((max_points, max_features), dtype=np.float32)
-                    elif patch.shape[0] < max_points or patch.shape[1] < max_features:
-                        padded_patch = np.zeros((max_points, max_features), dtype=np.float32)
-                        padded_patch[:patch.shape[0], :patch.shape[1]] = patch
-                    else:
-                        padded_patch = patch
-                    padded_patches.append(padded_patch)
-                
-                point_patches = torch.tensor(np.stack(padded_patches), dtype=torch.float)
-            except Exception as e:
-                point_patches = torch.zeros((1, 1, 1), dtype=torch.float)  
+            flattened_patches = []
+            for patch in all_patches:
+                if patch.shape != (512, 6):
+                    print("patch.shape", patch.shape)
+                flattened_patch = patch.reshape(-1) 
+                flattened_patches.append(flattened_patch)
+            point_patches = torch.tensor(np.stack(flattened_patches), dtype=torch.float)
         else:
-            point_patches = torch.zeros((1, 1, 1), dtype=torch.float)  
+            point_patches = torch.zeros((1, 512*6), dtype=torch.float)
+        
         result = {
             "point_patch_indices": point_patch_indices,
             "point_patches": point_patches

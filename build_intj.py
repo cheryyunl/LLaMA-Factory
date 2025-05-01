@@ -26,10 +26,8 @@ class PointCloudData:
 
 
 class PointCloudProcessor:
-    """简单的点云处理器，包含tokenizer作为属性"""
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
-        # 可以添加其他点云处理相关功能
 
 
 def create_multimodal_qwen2_model(base_model_path, output_path):
