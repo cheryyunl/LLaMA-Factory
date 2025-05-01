@@ -44,7 +44,7 @@ ddp_timeout: 180000000
 resume_from_checkpoint: null
 
 ### eval
-val_size: 0.05
+val_size: 5000
 per_device_eval_batch_size: 4
 eval_strategy: steps
 eval_steps: 500
