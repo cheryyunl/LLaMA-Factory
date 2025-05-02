@@ -12,7 +12,7 @@ freeze_language_model: false
 deepspeed: examples/deepspeed/ds_z3_config.json
 
 ### dataset
-dataset: openorca_0.6,objaverse,procthor,structured3d,shapenet,arkitscenes,hm3d,3dfuture,scannet,multiscan,3rscan
+dataset: objaverse,procthor,structured3d,shapenet,arkitscenes,hm3d,3dfuture,scannet,multiscan,3rscan
 streaming: false
 mix_strategy: concat
 template: qwen2_pointcloud
