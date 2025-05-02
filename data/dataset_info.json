@@ -719,6 +719,20 @@
         "system_tag": "system"                                                                                                                 
     }                                                                                                                                          
   },
+  "openorca_0.6": {                                                                                                                          
+    "file_name": "openorca_0.6.jsonl",                                                                                                   
+    "formatting": "sharegpt",                                                                                                                  
+    "columns": {                                                                                                                               
+        "messages": "messages"                                                                                                                 
+    },                                                                                                                                         
+    "tags": {                                                                                                                                  
+        "role_tag": "role",                                                                                                                    
+        "content_tag": "content",                                                                                                              
+        "user_tag": "user",                                                                                                                    
+        "assistant_tag": "assistant",                                                                                                          
+        "system_tag": "system"                                                                                                                 
+    }                                                                                                                                          
+  },
   "uco3d": {                                                                                                                          
     "file_name": "uco3d.jsonl",                                                                                                   
     "formatting": "sharegpt",                                                                                                                  
