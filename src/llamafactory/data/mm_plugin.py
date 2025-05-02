@@ -1986,21 +1986,24 @@ class Qwen2PointcloudPlugin(BasePlugin):
             any(len(patches) > 0 for patches in pointcloud_data["point_patches"])
         )
         
+        point_patch_indices = torch.full((len(batch_ids), max(len(ids) for ids in batch_ids)), -1, dtype=torch.long)
+        point_patches = torch.zeros((1, 512*6), dtype=torch.float)
+
         if len(images) == 0:
-            return {}  
+            return {
+                "point_patch_indices": point_patch_indices,
+                "point_patches": point_patches
+            }
 
         if not has_valid_patches:
             warnings.warn(f"Found {len(images)} images but no valid point cloud patches. Check your data.")
-            return {}  
+            return {
+                "point_patch_indices": point_patch_indices,
+                "point_patches": point_patches
+            }
         
         # point_patch_id = processor.tokenizer.convert_tokens_to_ids(self.point_patch_token)
         point_patch_id = 151666 
-
-        batch_size = len(batch_ids)
-        max_length = max(len(ids) for ids in batch_ids)
-
-        point_patch_indices = torch.full((batch_size, max_length), -1, dtype=torch.long)
-
         all_patches = []
 
         for batch_idx, (ids, imglen) in enumerate(zip(batch_ids, imglens)):
@@ -2027,6 +2030,7 @@ class Qwen2PointcloudPlugin(BasePlugin):
             point_patches = torch.tensor(np.stack(flattened_patches), dtype=torch.float)
         else:
             point_patches = torch.zeros((1, 512*6), dtype=torch.float)
+            
         result = {
             "point_patch_indices": point_patch_indices,
             "point_patches": point_patches
