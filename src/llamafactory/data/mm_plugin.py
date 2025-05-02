@@ -1852,7 +1852,14 @@ class Qwen2PointcloudPlugin(BasePlugin):
             # Replace IMAGE_PLACEHOLDER with point cloud sequences
             while IMAGE_PLACEHOLDER in content:
                 if processed_pointclouds >= len(images):
-                    raise ValueError(f"Not enough point cloud data ({len(images)}) for the number of {IMAGE_PLACEHOLDER} tokens.")
+                    warnings.warn(f"Not enough point cloud data ({len(images)}) for the number of {IMAGE_PLACEHOLDER} tokens. Using empty placeholder.")
+                    content = content.replace(
+                        IMAGE_PLACEHOLDER, 
+                        f"{self.pointcloud_start_token}{self.point_patch_token}{self.pointcloud_end_token}", 
+                        1
+                    )
+                    processed_pointclouds += 1 
+                    continue
                 
                 # 获取当前点云的数据
                 pointcloud_data = images[processed_pointclouds]
