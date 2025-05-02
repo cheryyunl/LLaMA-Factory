@@ -26,7 +26,7 @@ tokenized_path: data/tokenized_data
 ### output
 output_dir: saves/qwen2.5_3d/full/sft_3b_stage1
 logging_steps: 10
-save_steps: 500
+save_steps: 600
 plot_loss: true
 overwrite_output_dir: true
 save_only_model: false
