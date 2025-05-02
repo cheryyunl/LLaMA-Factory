@@ -12,7 +12,7 @@ freeze_language_model: false
 deepspeed: examples/deepspeed/ds_z3_config.json
 
 ### dataset
-dataset: structured3d,shapenet,arkitscenes,hm3d,3dfuture,scannet,multiscan,3rscan,openorca_local,uco3d,objaverse,procthor
+dataset: openorca_local,uco3d,objaverse,procthor,structured3d,shapenet,arkitscenes,hm3d,3dfuture,scannet,multiscan,3rscan
 streaming: false
 mix_strategy: concat
 template: qwen2_pointcloud
@@ -26,7 +26,7 @@ tokenized_path: data/tokenized_data
 ### output
 output_dir: saves/qwen2.5_3d/full/sft_3b_stage1
 logging_steps: 10
-save_steps: 500
+save_steps: 600
 plot_loss: true
 overwrite_output_dir: true
 save_only_model: false
@@ -42,11 +42,11 @@ warmup_ratio: 0.1
 bf16: true
 ddp_timeout: 180000000
 resume_from_checkpoint: null
-early_stopping_steps: 1000
+early_stopping_steps: 600
 load_best_model_at_end: true
 
 ### eval
 val_size: 0.05
 per_device_eval_batch_size: 8
 eval_strategy: steps
-eval_steps: 250
+eval_steps: 200
