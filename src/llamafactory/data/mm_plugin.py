@@ -27,6 +27,7 @@ import numpy as np
 import torch
 from transformers.image_utils import get_image_size, to_numpy_array
 from typing_extensions import override
+import warnings
 
 from ..extras.constants import AUDIO_PLACEHOLDER, IGNORE_INDEX, IMAGE_PLACEHOLDER, VIDEO_PLACEHOLDER
 from ..extras.packages import (
@@ -1975,8 +1976,12 @@ class Qwen2PointcloudPlugin(BasePlugin):
             any(len(patches) > 0 for patches in pointcloud_data["point_patches"])
         )
         
-        if not has_valid_patches or len(images) == 0:
-            return {}
+        if len(images) == 0:
+            return {}  
+
+        if not has_valid_patches:
+            warnings.warn(f"Found {len(images)} images but no valid point cloud patches. Check your data.")
+            return {}  
         
         # point_patch_id = processor.tokenizer.convert_tokens_to_ids(self.point_patch_token)
         point_patch_id = 151666 
