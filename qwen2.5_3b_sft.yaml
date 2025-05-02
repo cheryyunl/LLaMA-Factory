@@ -33,8 +33,8 @@ save_only_model: false
 report_to: wandb
 
 ### train
-per_device_train_batch_size: 8
-gradient_accumulation_steps: 4
+per_device_train_batch_size: 4
+gradient_accumulation_steps: 8
 learning_rate: 1.0e-5
 num_train_epochs: 2
 lr_scheduler_type: cosine
@@ -47,6 +47,6 @@ load_best_model_at_end: true
 
 ### eval
 val_size: 0.05
-per_device_eval_batch_size: 8
+per_device_eval_batch_size: 4
 eval_strategy: steps
 eval_steps: 200
