@@ -24,16 +24,13 @@ tokenized_path: data/tokenized_data
 # interleave_probs: 0.2,0.12,0.12,0.08,0.075,0.065,0.06,0.06,0.06,0.055,0.055,0.05
 
 ### output
-output_dir: saves/qwen2.5_3d/full/sft_3b
+output_dir: saves/qwen2.5_3d/full/sft_3b_stage1
 logging_steps: 10
 save_steps: 500
 plot_loss: true
 overwrite_output_dir: true
 save_only_model: false
 report_to: wandb
-wandb:
-  project: "qwen2.5-3d-sft" 
-  name: "qwen2.5-3b-sft-stage1"    
 
 ### train
 per_device_train_batch_size: 8
