@@ -12,7 +12,7 @@ freeze_language_model: false
 deepspeed: examples/deepspeed/ds_z3_config.json
 
 ### dataset
-dataset: openorca_local,uco3d,objaverse,procthor,structured3d,uco3d,shapenet,arkitscenes,hm3d,3dfuture,scannet,multiscan,3rscan
+dataset: openorca_0.6,objaverse,procthor,structured3d,shapenet,arkitscenes,hm3d,3dfuture,scannet,multiscan,3rscan
 streaming: false
 mix_strategy: concat
 template: qwen2_pointcloud
@@ -20,34 +20,33 @@ cutoff_len: 2048
 overwrite_cache: false
 preprocessing_num_workers: 16
 dataloader_num_workers: 4
-tokenized_path: data/tokenized_data
+tokenized_path: data/tokenized_full_data
 # interleave_probs: 0.2,0.12,0.12,0.08,0.075,0.065,0.06,0.06,0.06,0.055,0.055,0.05
 
 ### output
-output_dir: saves/qwen2.5_3d/full/sft_7b
+output_dir: saves/qwen2.5_3d/full/sft_7b_stage1
 logging_steps: 10
-save_steps: 500
+save_steps: 600
 plot_loss: true
 overwrite_output_dir: true
 save_only_model: false
 report_to: wandb
-wandb:
-  project: "qwen2.5-3d-sft" 
-  name: "qwen2.5-7b-sft-stage1"    
 
 ### train
 per_device_train_batch_size: 2
 gradient_accumulation_steps: 8
 learning_rate: 1.0e-5
-num_train_epochs: 3.0
+num_train_epochs: 2
 lr_scheduler_type: cosine
 warmup_ratio: 0.1
 bf16: true
 ddp_timeout: 180000000
 resume_from_checkpoint: null
+early_stopping_steps: 600
+load_best_model_at_end: true
 
 ### eval
 val_size: 0.05
 per_device_eval_batch_size: 2
 eval_strategy: steps
-eval_steps: 500
+eval_steps: 200
