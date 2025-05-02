@@ -1854,14 +1854,13 @@ class Qwen2PointcloudPlugin(BasePlugin):
                 
                 if processed_pointclouds >= len(images):
                     warnings.warn(f"Not enough point cloud data ({len(images)}) for the number of {IMAGE_PLACEHOLDER} tokens. Using empty placeholder.")
-                    print("messages", messages)
                     content = content.replace(IMAGE_PLACEHOLDER, empty_placeholder, 1)
                     processed_pointclouds += 1
                     continue
                 
                 pointcloud_data = images[processed_pointclouds]
                 structured_tokens = empty_placeholder
-                
+
                 if pointcloud_data is not None: 
                     patch_coords = None
                     
