@@ -1849,8 +1849,13 @@ class Qwen2PointcloudPlugin(BasePlugin):
         
         for message in messages:
             content = message["content"]
+            placeholder_count = content.count(IMAGE_PLACEHOLDER)
             
-            # Replace IMAGE_PLACEHOLDER with point cloud sequences
+            # 如果占位符数量超过可用点云数据，提前发出警告
+            if placeholder_count > len(images):
+                warnings.warn(f"Message contains {placeholder_count} {IMAGE_PLACEHOLDER} tokens but only {len(images)} point cloud data available")
+            
+            # 替换所有占位符
             while IMAGE_PLACEHOLDER in content:
                 if processed_pointclouds >= len(images):
                     warnings.warn(f"More {IMAGE_PLACEHOLDER} tokens than available point cloud data ({len(images)}). Using default placeholder for extras.")
@@ -1859,38 +1864,37 @@ class Qwen2PointcloudPlugin(BasePlugin):
                         f"{self.pointcloud_start_token}{self.point_patch_token}{self.pointcloud_end_token}", 
                         1
                     )
-                    continue  
-                
-                pointcloud_data = images[processed_pointclouds]
-                
-                # Generate structured token sequence based on point cloud data
-                if isinstance(pointcloud_data, str):
-                    npz_data = np.load(pointcloud_data)
-                    patches = npz_data.get('patches', None)
-                    patch_coords = npz_data.get('patch_coords', None)
+                else:
+                    pointcloud_data = images[processed_pointclouds]
                     
-                    if patches is None or patch_coords is None:
-                        print(f"NPZ file keys: {list(npz_data.keys())}")
-                        if len(npz_data.keys()) >= 2:
-                            keys = list(npz_data.keys())
-                            patches = npz_data[keys[0]]
-                            patch_coords = npz_data[keys[1]]
-                else:
-                    patches = pointcloud_data['patches']
-                    patch_coords = pointcloud_data['patch_coords']
-                
-                if patch_coords is not None:
-                    structured_tokens = self._generate_structured_tokens(patch_coords)
-                else:
-                    # Fall back to a simple token sequence
-                    content = content.replace(
-                        IMAGE_PLACEHOLDER, 
-                        f"{self.pointcloud_start_token}{self.point_patch_token}{self.pointcloud_end_token}", 
-                        1
-                    )
-                
-                content = content.replace(IMAGE_PLACEHOLDER, structured_tokens, 1)
-                processed_pointclouds += 1
+                    # Generate structured token sequence based on point cloud data
+                    if isinstance(pointcloud_data, str):
+                        npz_data = np.load(pointcloud_data)
+                        patches = npz_data.get('patches', None)
+                        patch_coords = npz_data.get('patch_coords', None)
+                        
+                        if patches is None or patch_coords is None:
+                            print(f"NPZ file keys: {list(npz_data.keys())}")
+                            if len(npz_data.keys()) >= 2:
+                                keys = list(npz_data.keys())
+                                patches = npz_data[keys[0]]
+                                patch_coords = npz_data[keys[1]]
+                    else:
+                        patches = pointcloud_data['patches']
+                        patch_coords = pointcloud_data['patch_coords']
+                    
+                    if patch_coords is not None:
+                        structured_tokens = self._generate_structured_tokens(patch_coords)
+                    else:
+                        # Fall back to a simple token sequence
+                        content = content.replace(
+                            IMAGE_PLACEHOLDER, 
+                            f"{self.pointcloud_start_token}{self.point_patch_token}{self.pointcloud_end_token}", 
+                            1
+                        )
+                    
+                    content = content.replace(IMAGE_PLACEHOLDER, structured_tokens, 1)
+                    processed_pointclouds += 1
             
             message["content"] = content
         
