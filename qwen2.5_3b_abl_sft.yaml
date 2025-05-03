@@ -24,7 +24,7 @@ tokenized_path: data/tokenized_obj_abl_data
 # interleave_probs: 0.2,0.12,0.12,0.08,0.075,0.065,0.06,0.06,0.06,0.055,0.055,0.05
 
 ### output
-output_dir: saves/qwen2.5_3d/full/sft_3b_stage1_abl_batchsize
+output_dir: saves/qwen2.5_3d/full/sft_3b_stage1_abl_batch256
 logging_steps: 10
 save_steps: 1000
 plot_loss: true
@@ -33,7 +33,7 @@ save_only_model: false
 report_to: wandb
 
 ### train
-per_device_train_batch_size: 4
+per_device_train_batch_size: 8
 gradient_accumulation_steps: 8
 learning_rate: 1.0e-5
 num_train_epochs: 2
