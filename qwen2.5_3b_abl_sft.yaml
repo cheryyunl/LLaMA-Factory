@@ -12,7 +12,7 @@ freeze_language_model: false
 deepspeed: examples/deepspeed/ds_z3_config.json
 
 ### dataset
-dataset: objaverse,shapenet,3dfuture,scannet,multiscan,3rscan
+dataset: objaverse,procthor,structured3d,shapenet,arkitscenes,hm3d,3dfuture,scannet,multiscan,3rscan
 streaming: false
 mix_strategy: concat
 template: qwen2_pointcloud
@@ -24,7 +24,7 @@ tokenized_path: data/tokenized_obj_abl_data
 # interleave_probs: 0.2,0.12,0.12,0.08,0.075,0.065,0.06,0.06,0.06,0.055,0.055,0.05
 
 ### output
-output_dir: saves/qwen2.5_3d/full/sft_3b_stage1_abl
+output_dir: saves/qwen2.5_3d/full/sft_3b_stage1_abl_batchsize
 logging_steps: 10
 save_steps: 1000
 plot_loss: true
@@ -34,7 +34,7 @@ report_to: wandb
 
 ### train
 per_device_train_batch_size: 4
-gradient_accumulation_steps: 4
+gradient_accumulation_steps: 8
 learning_rate: 1.0e-5
 num_train_epochs: 2
 lr_scheduler_type: cosine
