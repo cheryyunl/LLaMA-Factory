@@ -26,7 +26,7 @@ tokenized_path: data/tokenized_full_data
 ### output
 output_dir: saves/qwen2.5_3d/full/sft_3b_stage1
 logging_steps: 10
-save_steps: 600
+save_steps: 1000
 plot_loss: true
 overwrite_output_dir: true
 save_only_model: false
@@ -42,11 +42,11 @@ warmup_ratio: 0.1
 bf16: true
 ddp_timeout: 180000000
 resume_from_checkpoint: null
-early_stopping_steps: 600
+early_stopping_steps: 3000
 load_best_model_at_end: true
 
 ### eval
 val_size: 0.05
 per_device_eval_batch_size: 4
 eval_strategy: steps
-eval_steps: 200
+eval_steps: 1000
