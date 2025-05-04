@@ -273,6 +273,8 @@ def process_pointcloud_to_patches(points_6d):
 def load_captions_from_csv(csv_path):
     """从CSV加载物体描述"""
     captions = {}
+    model_id_mapping = {}  # 新增: 用于存储模型ID->完整ID的映射
+    
     try:
         with open(csv_path, 'r', encoding='utf-8') as f:
             reader = csv.reader(f)
@@ -286,12 +288,27 @@ def load_captions_from_csv(csv_path):
                     # 只使用general类型的标题，或者如果没有类型信息，使用所有标题
                     if caption_type == "general" or len(row) == 2:
                         captions[object_id] = caption_text.strip()
+                        
+                        # 对于ShapeNet风格ID (如 02691156_1169d987dbb...)，添加映射
+                        if '_' in object_id:
+                            category_id, model_id = object_id.split('_', 1)
+                            model_id_mapping[model_id] = object_id
+                            captions[model_id] = caption_text.strip()  # 同时用模型ID作为键存储
+                            
                 elif len(row) == 2:  # 新增支持: ID, caption_text 格式
                     object_id = row[0]
                     caption_text = row[1]
                     captions[object_id] = caption_text.strip()
                     
+                    # 对于ShapeNet风格ID，添加映射
+                    if '_' in object_id:
+                        category_id, model_id = object_id.split('_', 1)
+                        model_id_mapping[model_id] = object_id
+                        captions[model_id] = caption_text.strip()  # 同时用模型ID作为键存储
+                    
         print(f"成功从CSV加载了 {len(captions)} 个描述")
+        if model_id_mapping:
+            print(f"识别到 {len(model_id_mapping)} 个ShapeNet风格的ID")
     except Exception as e:
         print(f"加载CSV文件时出错: {str(e)}")
     return captions
@@ -386,46 +403,90 @@ def main():
     # 从CSV中提取所有对象ID
     csv_object_ids = set(captions.keys())
     print(f"CSV文件中包含 {len(csv_object_ids)} 个对象ID")
+    print(f"CSV中前5个ID示例: {list(csv_object_ids)[:5]}")
     
     # 计数器
     found_matches = 0
     skipped_no_caption = 0
     
+    # 列出文件夹中的所有PLY文件
+    all_ply_files = [f for f in os.listdir(args.ply_dir) if f.endswith('.ply')]
+    print(f"在目录中找到了 {len(all_ply_files)} 个PLY文件")
+    if len(all_ply_files) > 0:
+        print(f"前5个PLY文件示例: {all_ply_files[:5]}")
+    
     # 遍历PLY目录
-    for file in os.listdir(args.ply_dir):
-        if file.endswith('.ply'):
-            # 提取文件名（不带扩展名）作为对象ID
-            object_id = os.path.splitext(file)[0]
+    for file in all_ply_files:
+        # 提取文件名（不带扩展名）作为对象ID
+        object_id = os.path.splitext(file)[0]
+        
+        # 检查该对象ID是否有对应的描述
+        if object_id in captions:
+            ply_files.append((
+                os.path.join(args.ply_dir, file),
+                npz_dir,
+                object_id,
+                captions[object_id],
+                args.dataset_name
+            ))
+            found_matches += 1
+        else:
+            # 尝试使用ShapeNet风格的ID匹配
+            matched = False
             
-            # 检查该对象ID是否有对应的描述
-            if object_id in captions:
-                ply_files.append((
-                    os.path.join(args.ply_dir, file),
-                    npz_dir,
-                    object_id,
-                    captions[object_id],
-                    args.dataset_name
-                ))
-                found_matches += 1
-            else:
-                # 尝试使用ShapeNet风格的ID匹配（查找包含其后缀的ID）
-                matched = False
+            # 1. 尝试只使用ID的后半部分（去掉类别前缀）
+            if '_' in object_id:
+                category_id, model_id = object_id.split('_', 1)
+                if model_id in captions:
+                    ply_files.append((
+                        os.path.join(args.ply_dir, file),
+                        npz_dir,
+                        model_id,  # 使用模型ID作为标识符
+                        captions[model_id],
+                        args.dataset_name
+                    ))
+                    found_matches += 1
+                    matched = True
+                    # 打印前10个成功匹配的样例
+                    if found_matches <= 10:
+                        print(f"成功匹配: PLY文件 '{file}' 与ID '{model_id}'")
+            
+            # 2. 如果上述匹配失败，尝试更复杂的匹配方式
+            if not matched:
                 for csv_id in csv_object_ids:
-                    # 检查object_id是否是csv_id的一部分，或者csv_id是否是object_id的一部分
-                    if object_id in csv_id or csv_id in object_id:
+                    # 完全匹配 
+                    if csv_id == object_id:
                         ply_files.append((
                             os.path.join(args.ply_dir, file),
                             npz_dir,
-                            csv_id,  # 使用CSV ID作为标识符
+                            csv_id,
                             captions[csv_id],
                             args.dataset_name
                         ))
                         found_matches += 1
                         matched = True
                         break
-                
-                if not matched:
-                    skipped_no_caption += 1
+                    # 部分匹配 - object_id包含csv_id
+                    elif csv_id in object_id:
+                        ply_files.append((
+                            os.path.join(args.ply_dir, file),
+                            npz_dir,
+                            csv_id,
+                            captions[csv_id],
+                            args.dataset_name
+                        ))
+                        found_matches += 1
+                        matched = True
+                        # 打印前10个成功匹配的样例
+                        if found_matches <= 10:
+                            print(f"部分匹配: PLY文件 '{file}' 与ID '{csv_id}'")
+                        break
+            
+            if not matched:
+                skipped_no_caption += 1
+                # 打印前10个未匹配的样例
+                if skipped_no_caption <= 10:
+                    print(f"未匹配: PLY文件 '{file}' 没有找到对应描述")
     
     print(f"找到 {found_matches} 个匹配的PLY文件进行处理 (跳过了 {skipped_no_caption} 个没有描述的文件)")
     
