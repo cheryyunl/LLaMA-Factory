@@ -273,17 +273,27 @@ def process_pointcloud_to_patches(points_6d):
 def load_captions_from_csv(csv_path):
     """从CSV加载物体描述"""
     captions = {}
-    with open(csv_path, 'r', encoding='utf-8') as f:
-        reader = csv.reader(f)
-        for row in reader:
-            if len(row) >= 3:
-                object_id = row[0]
-                caption_type = row[1]
-                caption_text = row[2]
-                
-                # 只使用general类型的标题，或者如果没有类型信息，使用所有标题
-                if caption_type == "general" or len(row) == 2:
+    try:
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            header = next(reader, None)  # 尝试跳过标题行
+            for row in reader:
+                if len(row) >= 3:  # 原始格式：ID, caption_type, caption_text
+                    object_id = row[0]
+                    caption_type = row[1]
+                    caption_text = row[2]
+                    
+                    # 只使用general类型的标题，或者如果没有类型信息，使用所有标题
+                    if caption_type == "general" or len(row) == 2:
+                        captions[object_id] = caption_text.strip()
+                elif len(row) == 2:  # 新增支持: ID, caption_text 格式
+                    object_id = row[0]
+                    caption_text = row[1]
                     captions[object_id] = caption_text.strip()
+                    
+        print(f"成功从CSV加载了 {len(captions)} 个描述")
+    except Exception as e:
+        print(f"加载CSV文件时出错: {str(e)}")
     return captions
 
 def process_single_file(args):
@@ -371,9 +381,23 @@ def main():
     
     # 查找所有PLY文件
     ply_files = []
+    print(f"搜索目录 {args.ply_dir} 中的PLY文件...")
+    
+    # 从CSV中提取所有对象ID
+    csv_object_ids = set(captions.keys())
+    print(f"CSV文件中包含 {len(csv_object_ids)} 个对象ID")
+    
+    # 计数器
+    found_matches = 0
+    skipped_no_caption = 0
+    
+    # 遍历PLY目录
     for file in os.listdir(args.ply_dir):
         if file.endswith('.ply'):
+            # 提取文件名（不带扩展名）作为对象ID
             object_id = os.path.splitext(file)[0]
+            
+            # 检查该对象ID是否有对应的描述
             if object_id in captions:
                 ply_files.append((
                     os.path.join(args.ply_dir, file),
@@ -382,8 +406,28 @@ def main():
                     captions[object_id],
                     args.dataset_name
                 ))
+                found_matches += 1
+            else:
+                # 尝试使用ShapeNet风格的ID匹配（查找包含其后缀的ID）
+                matched = False
+                for csv_id in csv_object_ids:
+                    # 检查object_id是否是csv_id的一部分，或者csv_id是否是object_id的一部分
+                    if object_id in csv_id or csv_id in object_id:
+                        ply_files.append((
+                            os.path.join(args.ply_dir, file),
+                            npz_dir,
+                            csv_id,  # 使用CSV ID作为标识符
+                            captions[csv_id],
+                            args.dataset_name
+                        ))
+                        found_matches += 1
+                        matched = True
+                        break
+                
+                if not matched:
+                    skipped_no_caption += 1
     
-    print(f"找到 {len(ply_files)} 个PLY文件进行处理")
+    print(f"找到 {found_matches} 个匹配的PLY文件进行处理 (跳过了 {skipped_no_caption} 个没有描述的文件)")
     
     # 设置工作进程数
     if args.n_workers is None:
