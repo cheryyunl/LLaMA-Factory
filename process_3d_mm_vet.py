@@ -332,19 +332,18 @@ def process_dataset(question_path, gt_path, points_dir, output_dir, output_jsonl
             if point_id not in results or results[point_id]["status"] != "success":
                 continue
             
-            # 构建图像路径
+            # 构建图像路径 - 简化格式
             image_path = f"3d_mm_vet/{point_id}.npz"
             
-            # 构建对话数据
+            # 构建对话数据 - 只包含必要字段
             dialogue = {
                 "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": USER_PROMPT_TEMPLATE.format(question["text"])},
                     {"role": "assistant", "content": answer["text"]}
                 ],
-                "images": [image_path],
-                "category": question["category"],  # 保留类别信息，可用于后续分析
-                "question_id": qid  # 保留问题ID，便于追踪
+                "images": [image_path]
+                # 移除category和question_id字段
             }
             
             # 写入JSONL
