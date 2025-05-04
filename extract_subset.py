@@ -1,4 +1,4 @@
- #!/usr/bin/env python3
+#!/usr/bin/env python3
 import os
 import json
 import random
@@ -40,43 +40,11 @@ def extract_subsets(input_json, output_dir, train_count=50000, eval_count=5000, 
     # 抽取训练集
     train_data = data[:train_count]
     
-    # 计算训练集中的场景ID
-    train_scenes = set(item["scene_id"] for item in train_data)
-    print(f"训练集包含 {len(train_scenes)} 个唯一场景ID")
+    # 直接取后面的数据作为评估集
+    eval_data = data[train_count:train_count+eval_count]
     
-    # 抽取不重复的评估集
-    remaining_data = data[train_count:]
-    eval_data = []
-    excluded_count = 0
-    
-    for item in remaining_data:
-        if len(eval_data) >= eval_count:
-            break
-            
-        # 确保评估集样本的场景ID不在训练集中，避免数据泄漏
-        if item["scene_id"] not in train_scenes:
-            eval_data.append(item)
-        else:
-            excluded_count += 1
-    
-    print(f"从剩余数据中排除了 {excluded_count} 个与训练集场景重叠的样本")
+    print(f"训练集包含 {len(train_data)} 个样本")
     print(f"评估集包含 {len(eval_data)} 个样本")
-    
-    # 如果评估集数量不足，可以考虑放宽限制，允许一些场景重叠
-    if len(eval_data) < eval_count * 0.8:  # 如果不到要求的80%
-        print(f"警告: 不重叠评估集仅包含 {len(eval_data)} 样本，低于目标 {eval_count}。将添加部分可能与训练集场景重叠的样本")
-        
-        # 添加一些可能重叠的样本，直到达到目标数量
-        additional_needed = eval_count - len(eval_data)
-        random.shuffle(remaining_data)  # 再次打乱以随机选择
-        
-        for item in remaining_data:
-            if item not in eval_data and len(eval_data) < eval_count:
-                eval_data.append(item)
-                if len(eval_data) >= eval_count:
-                    break
-    
-    print(f"最终评估集包含 {len(eval_data)} 个样本")
     
     # 保存训练集
     train_output = os.path.join(output_dir, "binary_spatial_qa.json")
