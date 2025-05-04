@@ -348,6 +348,8 @@ def process_qa_data(json_path, pcl_base_dir, output_dir, output_jsonl, n_workers
             # 获取问题和答案
             question = item["question"]
             answer = item["answer"]
+            # 获取目标对象，如果不存在则为空字符串
+            target_object = item.get("target_object", "")
             
             # 清理文本
             cleaned_question = clean_text(question)
@@ -359,11 +361,14 @@ def process_qa_data(json_path, pcl_base_dir, output_dir, output_jsonl, n_workers
             else:
                 scene_name = scene_id
             
+            # 构建包含scene_id和target_object的用户提示
+            user_prompt = f"scene_id: {scene_id}\ntarget_object: {target_object}\n\n<image>{cleaned_question}"
+            
             # 构建最终的对话数据
             dialogue = {
                 "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": f"<image>{cleaned_question}"},
+                    {"role": "user", "content": user_prompt},
                     {"role": "assistant", "content": cleaned_answer}
                 ],
                 "images": [f"3d-grand/{scene_name}.npz"]
