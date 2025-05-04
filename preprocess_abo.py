@@ -21,7 +21,6 @@ USER_PROMPTS = [
     "<image>Describe this object shown in the point cloud.",
     "<image>What do you see in this 3D point cloud?",
     "<image>Can you describe this 3D object in detail?",
-    "<image>What is this item represented by the point cloud?",
     "<image>Please provide a description of this 3D object."
 ]
 
@@ -168,28 +167,71 @@ def normalize_pointcloud(xyz, rgb):
     
     return xyz, rgb
 
+def extract_vertex_data(vertex):
+    """从vertex中安全地提取坐标和颜色"""
+    try:
+        # 尝试直接使用索引获取坐标
+        if hasattr(vertex, 'dtype') and hasattr(vertex.dtype, 'names'):
+            # 使用正常的数组索引方式
+            x = vertex['x']
+            y = vertex['y']
+            z = vertex['z']
+            
+            # 检查是否有颜色信息
+            has_color = 'red' in vertex.dtype.names and 'green' in vertex.dtype.names and 'blue' in vertex.dtype.names
+            if has_color:
+                r = vertex['red']
+                g = vertex['green']
+                b = vertex['blue']
+            else:
+                # 如果没有颜色，使用默认灰色
+                r = np.ones_like(x) * 128
+                g = np.ones_like(x) * 128
+                b = np.ones_like(x) * 128
+        else:
+            # 尝试从更底层的数据结构提取信息
+            data = vertex.data
+            x = np.array([pt[0] for pt in data])
+            y = np.array([pt[1] for pt in data])
+            z = np.array([pt[2] for pt in data])
+            
+            # 检查是否有颜色信息 (典型的PLY格式包含6-7个字段: x,y,z,r,g,b,[a])
+            if len(data[0]) >= 6:
+                r = np.array([pt[3] for pt in data])
+                g = np.array([pt[4] for pt in data])
+                b = np.array([pt[5] for pt in data])
+            else:
+                # 如果没有颜色，使用默认灰色
+                r = np.ones_like(x) * 128
+                g = np.ones_like(x) * 128
+                b = np.ones_like(x) * 128
+                
+        # 堆叠成坐标和颜色数组
+        xyz = np.vstack((x, y, z)).T
+        rgb = np.vstack((r, g, b)).T
+        
+        return xyz, rgb, True
+    except Exception as e:
+        print(f"提取顶点数据时出错: {str(e)}")
+        return None, None, False
+
 def load_ply_file(ply_path, target_points=16384):
     """加载PLY文件并处理为6维点云数据"""
     try:
         # 读取PLY文件
         plydata = PlyData.read(ply_path)
+        
+        # 检查vertex元素
+        if 'vertex' not in plydata:
+            print(f"错误: PLY文件 {ply_path} 中没有vertex元素")
+            return None, False
+            
         vertex = plydata['vertex']
         
-        # 提取xyz坐标
-        x = vertex['x']
-        y = vertex['y']
-        z = vertex['z']
-        xyz = np.vstack((x, y, z)).T
-        
-        # 提取rgb颜色（如果存在）
-        if 'red' in vertex.dtype.names:
-            r = vertex['red']
-            g = vertex['green']
-            b = vertex['blue']
-            rgb = np.vstack((r, g, b)).T
-        else:
-            # 如果没有颜色，使用灰色
-            rgb = np.ones_like(xyz) * 128
+        # 提取坐标和颜色
+        xyz, rgb, success = extract_vertex_data(vertex)
+        if not success:
+            return None, False
         
         # 将xyz和rgb组合为6维
         points_6d = np.concatenate([xyz, rgb], axis=1)
