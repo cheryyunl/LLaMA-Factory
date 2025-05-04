@@ -14,6 +14,8 @@ def remove_brackets(text):
     text = re.sub(r'\{[^}]*\}', '', text)
     # 移除尖括号及其内容
     text = re.sub(r'<[^>]*>', '', text)
+    # 移除短横线"-"及其后面的内容
+    text = re.sub(r'\s*-\s*.*$', '', text)
     # 清理多余空格
     text = re.sub(r'\s+', ' ', text).strip()
     return text
@@ -59,7 +61,7 @@ def clean_jsonl(input_file, output_file):
     print(f"清理后的文件已保存到: {output_file}")
 
 def main():
-    parser = argparse.ArgumentParser(description='从JSONL文件中清理助手回答里的括号内容')
+    parser = argparse.ArgumentParser(description='从JSONL文件中清理助手回答里的括号内容和短横线后的内容')
     parser.add_argument('--input', '-i', type=str, required=True, help='输入的JSONL文件路径')
     parser.add_argument('--output', '-o', type=str, required=True, help='输出的JSONL文件路径')
     args = parser.parse_args()
@@ -67,4 +69,4 @@ def main():
     clean_jsonl(args.input, args.output)
 
 if __name__ == "__main__":
-    main() 
+    main()
