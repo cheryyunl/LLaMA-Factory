@@ -220,15 +220,18 @@ def load_and_process_ply(args):
         
         # 提取顶点数据
         vertex = plydata['vertex']
-        x = vertex['x']
-        y = vertex['y']
-        z = vertex['z']
-        
-        # 提取颜色数据（如果存在）
-        if 'red' in vertex.dtype.names:
-            r = vertex['red']
-            g = vertex['green']
-            b = vertex['blue']
+        vertex_data = vertex.data  # 获取顶点数据的numpy结构化数组
+
+        # 提取坐标
+        x = vertex_data['x']
+        y = vertex_data['y']
+        z = vertex_data['z']
+
+        # 检查颜色属性是否存在
+        if 'red' in vertex_data.dtype.names:
+            r = vertex_data['red']
+            g = vertex_data['green']
+            b = vertex_data['blue']
         else:
             # 如果没有颜色，使用默认灰色
             r = np.ones_like(x) * 128
