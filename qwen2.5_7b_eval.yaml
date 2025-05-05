@@ -21,7 +21,6 @@ max_samples: 10000
 output_dir: saves/qwen2.5_3d/eval/sft_7b_stage1_abl_lr
 overwrite_output_dir: true
 report_to: none  # choices: [none, wandb, tensorboard, swanlab, mlflow]
-save_predictions: true
 
 ### eval
 per_device_eval_batch_size: 4
