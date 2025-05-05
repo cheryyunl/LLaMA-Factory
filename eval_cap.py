@@ -7,9 +7,9 @@ random.seed(42)
 
 # 定义要抽样的数据集和数量
 datasets = [
-    {"name": "data/objaverse_cap.jsonl", "sample_count": 1000},
-    {"name": "data/abo.jsonl", "sample_count": 500},
-    {"name": "data/shapenet.jsonl", "sample_count": 1000}
+    {"name": "data/objaverse_cap.jsonl", "sample_count": 2000},
+    {"name": "data/abo.jsonl", "sample_count": 1000},
+    {"name": "data/shapenet_cap.jsonl", "sample_count": 2000}
 ]
 
 # 创建评估数据集

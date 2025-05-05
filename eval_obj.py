@@ -7,7 +7,7 @@ random.seed(42)
 
 # 定义要抽样的数据集和数量
 datasets = [
-    {"name": "data/objaverse_lvis.jsonl", "sample_count": 1000},
+    {"name": "data/objaverse_lvis.jsonl", "sample_count": 2000},
     {"name": "data/scannet.jsonl", "sample_count": 1000}
 ]
 
