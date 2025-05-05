@@ -455,10 +455,145 @@ def test_plugin_with_real_data(npz_file_path):
         traceback.print_exc()
         return False
 
+def test_generate_with_pointcloud(model_path):
+    """
+    测试模型使用点云数据生成文本
+    """
+    print("加载模型和tokenizer...")
+    model = MultimodalQwen2ForCausalLM.from_pretrained(model_path, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+    model.eval()  # 设置为评估模式
+    
+    print("创建测试输入...")
+    # 创建提示文本
+    prompt = f"{IMAGE_PLACEHOLDER}What is this point cloud?"
+    
+    # 使用tokenizer处理文本
+    inputs = tokenizer(prompt, return_tensors="pt")
+    
+    # 创建随机点云数据（模拟真实点云）
+    n_patches = 10  # 点云patch数量
+    point_patches = torch.rand(n_patches, 512 * 6)  # (n_patches, 512*6) 每个patch有512个点，每个点6维特征
+    
+    # 创建点云索引
+    # 找出所有点云标记位置
+    patch_token_id = tokenizer.convert_tokens_to_ids("<point_patch>")
+    point_indices = torch.full_like(inputs["input_ids"], -1, dtype=torch.long)
+    
+    # 处理特殊情况：tokenizer可能没有<point_patch>标记
+    if patch_token_id == tokenizer.unk_token_id:
+        print(f"警告: <point_patch>标记不存在，使用手动位置...")
+        # 手动找出图像占位符的位置
+        text = tokenizer.decode(inputs["input_ids"][0])
+        placeholder_pos = text.find(IMAGE_PLACEHOLDER)
+        if placeholder_pos != -1:
+            # 估计位置并手动设置点云索引
+            est_token_pos = len(tokenizer.encode(text[:placeholder_pos]))
+            point_indices[0, est_token_pos] = 0  # 使用第一个点云patch
+    else:
+        # 正常情况：找出所有点云标记位置
+        patch_positions = (inputs["input_ids"][0] == patch_token_id).nonzero().squeeze(-1)
+        
+        # 如果找到点云标记位置
+        if len(patch_positions) > 0:
+            print(f"找到 {len(patch_positions)} 个点云标记位置")
+            for idx, pos in enumerate(patch_positions):
+                # 如果标记位置超过了我们的点云数量，循环使用
+                point_index = idx % n_patches
+                point_indices[0, pos] = point_index
+        else:
+            print("警告: 未找到点云标记位置，尝试添加默认位置...")
+            # 尝试找到一个合理的位置插入点云
+            point_indices[0, len(inputs["input_ids"][0]) // 2] = 0  # 使用第一个点云
+    
+    print("执行文本生成...")
+    # 设置生成参数
+    gen_kwargs = {
+        "max_new_tokens": 100,
+        "do_sample": False,
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "point_patches": point_patches,
+        "point_patch_indices": point_indices
+    }
+    
+    try:
+        # 尝试生成
+        with torch.no_grad():
+            outputs = model.generate(
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
+                **gen_kwargs
+            )
+        
+        # 解码生成的文本
+        generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        print("\n生成的文本:")
+        print("="*50)
+        print(generated_text)
+        print("="*50)
+        
+        # 验证生成成功
+        return True, generated_text
+    except Exception as e:
+        print(f"生成过程出现错误: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False, str(e)
+
+def test_forward_with_pointcloud(model_path):
+    """
+    测试模型前向传播是否正常工作
+    """
+    print("\n测试模型前向传播...")
+    model = MultimodalQwen2ForCausalLM.from_pretrained(model_path, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+    model.eval()
+    
+    # 创建提示文本
+    prompt = f"以下是一个3D点云数据：{IMAGE_PLACEHOLDER} 请描述"
+    inputs = tokenizer(prompt, return_tensors="pt")
+    
+    # 创建随机点云数据
+    n_patches = 5
+    point_patches = torch.rand(n_patches, 512 * 6)
+    
+    # 创建点云索引
+    point_indices = torch.full_like(inputs["input_ids"], -1, dtype=torch.long)
+    patch_token_id = tokenizer.convert_tokens_to_ids("<point_patch>")
+    
+    # 处理特殊情况
+    if patch_token_id == tokenizer.unk_token_id:
+        # 模拟位置
+        point_indices[0, 5] = 0  # 假设位置5是点云位置
+    else:
+        patch_positions = (inputs["input_ids"][0] == patch_token_id).nonzero().squeeze(-1)
+        if len(patch_positions) > 0:
+            for idx, pos in enumerate(patch_positions):
+                point_index = idx % n_patches
+                point_indices[0, pos] = point_index
+    
+    try:
+        with torch.no_grad():
+            outputs = model(
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
+                point_patch_indices=point_indices,
+                point_patches=point_patches
+            )
+        
+        print(f"前向传播成功！输出logits形状: {outputs.logits.shape}")
+        return True
+    except Exception as e:
+        print(f"前向传播出现错误: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
+
 if __name__ == "__main__":
     # 配置路径
-    BASE_MODEL_PATH = "/scratch/zt1/project/furongh-prj/user/cheryunl/Qwen2.5-7B-Instruct"  # 或你本地的Qwen2模型路径
-    OUTPUT_PATH = "/scratch/zt1/project/furongh-prj/user/cheryunl/LLaMA-Factory/multimodal_qwen2.5_7b_model" 
+    BASE_MODEL_PATH = "saves/qwen2.5_3d/full/sft_7b_stage1_abl_lr"  # 或你本地的Qwen2模型路径
+    OUTPUT_PATH = "saves/qwen2.5_3d/full/sft_7b_stage1_lr" 
     
     # 创建模型
     print("创建MultimodalQwen2模型...")
@@ -488,3 +623,19 @@ if __name__ == "__main__":
     if success:
         print("\n测试plugin处理真实点云数据...")
         test_plugin_with_real_data("data/objaverse/patches_objects.shard_000/objaverse_000001.npz")
+
+    # 测试生成
+    if success:
+        gen_success, gen_text = test_generate_with_pointcloud(OUTPUT_PATH)
+        if gen_success:
+            print("\n✅ 测试成功完成！模型能够使用点云数据生成文本。")
+        else:
+            print("\n❌ 生成测试失败。")
+
+    # 测试前向传播
+    if success:
+        forward_success = test_forward_with_pointcloud(OUTPUT_PATH)
+        if forward_success:
+            print("\n✅ 测试成功完成！模型能够正常前向传播。")
+        else:
+            print("\n❌ 前向传播测试失败。")

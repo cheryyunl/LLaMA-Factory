@@ -1,0 +1,28 @@
+### model
+model_name_or_path: saves/qwen2.5_3d/full/sft_7b_stage1_obj
+trust_remote_code: true
+
+### method
+stage: sft
+do_predict: true
+finetuning_type: full
+
+### dataset
+eval_dataset: object_eval
+template: qwen2_pointcloud
+cutoff_len: 2048
+overwrite_cache: false
+preprocessing_num_workers: 16
+dataloader_num_workers: 4
+tokenized_path: data/tokenized_obj_eval_data
+
+### output
+output_dir: saves/qwen2.5_3d/eval/sft_7b_stage1_obj
+overwrite_output_dir: true
+report_to: none  # choices: [none, wandb, tensorboard, swanlab, mlflow]
+
+### eval
+per_device_eval_batch_size: 4
+predict_with_generate: true
+ddp_timeout: 180000000
+bf16: true
