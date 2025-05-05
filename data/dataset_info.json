@@ -956,5 +956,36 @@
       "assistant_tag": "assistant",
       "system_tag": "system"
     }
-  }
+  },
+  "binary_spatial_qa": {
+    "file_name": "binary_spatial_qa.jsonl",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "images": "images"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant",
+      "system_tag": "system"
+    }
+  },
+  "non_binary_spatial_qa": {
+    "file_name": "non_binary_spatial_qa.jsonl",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "images": "images"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant",
+      "system_tag": "system"
+    }
+  },
+
 }
