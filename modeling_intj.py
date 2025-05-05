@@ -170,14 +170,26 @@ class MultimodalQwen2ForCausalLM(Qwen2ForCausalLM):
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
         )
+    def generate(self, *args, **kwargs):
+        if "point_patches" in kwargs:
+            point_patches = kwargs.pop("point_patches")
+            kwargs["_point_patches"] = point_patches
+        
+        if "point_patch_indices" in kwargs:
+            point_patch_indices = kwargs.pop("point_patch_indices")
+            kwargs["_point_patch_indices"] = point_patch_indices
+        
+        return super().generate(*args, **kwargs)
+
     def prepare_inputs_for_generation(self, input_ids, past_key_values=None, attention_mask=None, **kwargs):
         prepared_inputs = super().prepare_inputs_for_generation(
             input_ids, past_key_values=past_key_values, attention_mask=attention_mask, **kwargs
         )
+        
         if past_key_values is None:
-            if "point_patches" in kwargs:
-                prepared_inputs["point_patches"] = kwargs["point_patches"]
-            if "point_patch_indices" in kwargs:
-                prepared_inputs["point_patch_indices"] = kwargs["point_patch_indices"]
+            if "_point_patches" in kwargs:
+                prepared_inputs["point_patches"] = kwargs["_point_patches"]
+            if "_point_patch_indices" in kwargs:
+                prepared_inputs["point_patch_indices"] = kwargs["_point_patch_indices"]
         
         return prepared_inputs
