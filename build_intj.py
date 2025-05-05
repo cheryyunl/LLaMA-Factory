@@ -597,7 +597,7 @@ if __name__ == "__main__":
     
     # 创建模型
     print("创建MultimodalQwen2模型...")
-    # model, tokenizer, config, processor = create_multimodal_qwen2_model(BASE_MODEL_PATH, OUTPUT_PATH)
+    model, tokenizer, config, processor = create_multimodal_qwen2_model(BASE_MODEL_PATH, OUTPUT_PATH)
     tokenizer = AutoTokenizer.from_pretrained(OUTPUT_PATH, trust_remote_code=True)
     model = AutoModelForCausalLM.from_pretrained(OUTPUT_PATH, trust_remote_code=True)
     processor = PointCloudProcessor(tokenizer)
