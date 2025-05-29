@@ -170,6 +170,11 @@ class MultimodalQwen2ForCausalLM(Qwen2ForCausalLM):
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
         )
+    def _validate_model_kwargs(self, model_kwargs):
+        filtered_kwargs = {k: v for k, v in model_kwargs.items() 
+                        if k not in ['point_patch_indices', 'point_patches']}
+        super()._validate_model_kwargs(filtered_kwargs)
+
     def prepare_inputs_for_generation(
         self,
         input_ids,
@@ -215,10 +220,9 @@ class MultimodalQwen2ForCausalLM(Qwen2ForCausalLM):
             }
         )
         
-        if cache_position is not None and cache_position[0] == 0:
-            if point_patches is not None:
-                model_inputs["point_patches"] = point_patches
-            if point_patch_indices is not None:
-                model_inputs["point_patch_indices"] = point_patch_indices
+        if point_patches is not None:
+            model_inputs["point_patches"] = point_patches
+        if point_patch_indices is not None:
+            model_inputs["point_patch_indices"] = point_patch_indices
                 
         return model_inputs
