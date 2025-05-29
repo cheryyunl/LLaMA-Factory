@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from copy import deepcopy
 import shutil
 
-from modeling_intj import MultimodalQwen2Config, MultimodalQwen2ForCausalLM
+from modeling_lemon import MultimodalQwen2Config, MultimodalQwen2ForCausalLM
 # 导入LLaMA Factory相关模块
 from llamafactory.model.loader import load_tokenizer
 from llamafactory.hparams import ModelArguments, DataArguments
@@ -75,11 +75,10 @@ def create_multimodal_qwen2_model(base_model_path, output_path):
         import json
         json.dump({"type": "PointCloudProcessor"}, f)
     
-    shutil.copy("modeling_intj.py", os.path.join(output_path, "modeling_intj.py"))
+    shutil.copy("modeling_lemon.py", os.path.join(output_path, "modeling_lemon.py"))
     
-    # 创建__init__.py文件
     init_content = """
-    from .modeling_intj import MultimodalQwen2Config, MultimodalQwen2ForCausalLM
+    from .modeling_lemon import MultimodalQwen2Config, MultimodalQwen2ForCausalLM
     from transformers.models.auto.configuration_auto import CONFIG_MAPPING
     from transformers.models.auto.modeling_auto import MODEL_FOR_CAUSAL_LM_MAPPING
 
