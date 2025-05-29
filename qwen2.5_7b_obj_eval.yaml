@@ -1,5 +1,5 @@
 ### model
-model_name_or_path: saves/qwen2.5_3d/full/sft_7b_stage1_obj
+model_name_or_path: /code/Lemon/stage1_7b_inference
 trust_remote_code: true
 
 ### method
@@ -17,7 +17,7 @@ dataloader_num_workers: 4
 tokenized_path: data/tokenized_obj_eval_data
 
 ### output
-output_dir: saves/qwen2.5_3d/eval/sft_7b_stage1_obj
+output_dir: /code/Lemon/stage1_7b_inference_obj_eval
 overwrite_output_dir: true
 report_to: none  # choices: [none, wandb, tensorboard, swanlab, mlflow]
 

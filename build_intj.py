@@ -591,8 +591,8 @@ def test_forward_with_pointcloud(model_path):
 
 if __name__ == "__main__":
     # 配置路径
-    BASE_MODEL_PATH = "saves/qwen2.5_3d/full/sft_7b_stage1_abl_lr"  # 或你本地的Qwen2模型路径
-    OUTPUT_PATH = "saves/qwen2.5_3d/full/sft_7b_stage1_lr" 
+    BASE_MODEL_PATH = "/code/Lemon/stage1_7b"  # 或你本地的Qwen2模型路径
+    OUTPUT_PATH = "/code/Lemon/stage1_7b_inference" 
     
     # 创建模型
     print("创建MultimodalQwen2模型...")
