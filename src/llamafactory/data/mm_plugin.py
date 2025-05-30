@@ -2003,7 +2003,7 @@ class Qwen2PointcloudPlugin(BasePlugin):
             }
         
         # point_patch_id = processor.tokenizer.convert_tokens_to_ids(self.point_patch_token)
-        point_patch_id = 151666 
+        point_patch_id = 151667
         all_patches = []
 
         for batch_idx, (ids, imglen) in enumerate(zip(batch_ids, imglens)):

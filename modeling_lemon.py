@@ -15,6 +15,7 @@ class MultimodalQwen2Config(Qwen2Config):
     Configuration class for MultimodalQwen2Model.
     Extends Qwen2Config to include multimodal specific parameters.
     """
+    model_type = "multimodal_qwen2"
     def __init__(
         self,
         point_patch_size=512,
@@ -28,6 +29,7 @@ class MultimodalQwen2Model(Qwen2Model):
     """
     Multimodal Qwen2 model that supports point cloud data alongside text input.
     """
+    config_class = MultimodalQwen2Config 
     def __init__(self, config: MultimodalQwen2Config):
         super().__init__(config)
         
@@ -35,7 +37,8 @@ class MultimodalQwen2Model(Qwen2Model):
         self.embed_point_patch = nn.Linear(
             config.point_patch_size * 6,  # 512 * 6
             config.hidden_size,
-            bias=False
+            bias=False,
+            dtype=torch.bfloat16 
         )
 
     def forward(
@@ -61,16 +64,30 @@ class MultimodalQwen2Model(Qwen2Model):
             # Process point cloud patches
             if point_patches is not None and point_patch_indices is not None:
                 # Validate input shape consistency
-                assert point_patch_indices.shape == input_ids.shape, \
-                    "point_patch_indices and input_ids should have the same shape"
+                point_patches = point_patches.to(dtype=inputs_embeds.dtype, device=inputs_embeds.device)
+                if point_patch_indices.shape[1] != input_ids.shape[1]:
+                    batch_size, target_len = input_ids.shape
+                    current_len = point_patch_indices.shape[1]
+                    
+                    if target_len > current_len:
+                        padding = torch.full((batch_size, target_len - current_len), -1, 
+                                        dtype=point_patch_indices.dtype, 
+                                        device=point_patch_indices.device)
+                        point_patch_indices = torch.cat([point_patch_indices, padding], dim=1)
+                    else:
+                        raise ValueError(
+                            f"Cannot truncate point_patch_indices from {current_len} to {target_len}. "
+                            f"This might lose point cloud patch mappings. "
+                        )
                 
                 # Embed point cloud patches
-                point_embeds = self.embed_point_patch(point_patches)  # (n_patches, hidden_size)
+                point_embeds = self.embed_point_patch(point_patches)
+                print(f"   point_embeds shape after embedding: {point_embeds.shape}")
                 
                 # Add dummy token for text (index -1)
                 point_embeds = torch.cat([
                     point_embeds, 
-                    torch.zeros(1, self.config.hidden_size).to(point_embeds.device)
+                    torch.zeros(1, self.config.hidden_size).to(point_embeds)
                 ])  # (n_patches + 1, hidden_size)
                 
                 # Arrange embeddings according to point_patch_indices
@@ -100,6 +117,7 @@ class MultimodalQwen2ForCausalLM(Qwen2ForCausalLM):
     Multimodal Qwen2 model for causal language modeling.
     Supports both text and point cloud inputs.
     """
+    config_class = MultimodalQwen2Config
     def __init__(self, config: MultimodalQwen2Config):
         super().__init__(config)
         # Replace base model with multimodal model
@@ -197,6 +215,17 @@ class MultimodalQwen2ForCausalLM(Qwen2ForCausalLM):
             elif input_ids.shape[1] != cache_position.shape[0]:
                 input_ids = input_ids[:, cache_position]
                 if point_patch_indices is not None:
+                    batch_size, orig_len = point_patch_indices.shape
+                    max_pos = cache_position.max().item()
+                    if max_pos >= orig_len:
+                        needed_len = max_pos + 1
+                        seq_diff = needed_len - orig_len
+                        padding = torch.full((batch_size, seq_diff), -1,
+                                        dtype=point_patch_indices.dtype,
+                                        device=point_patch_indices.device)
+                        point_patch_indices = torch.cat([point_patch_indices, padding], dim=1)
+                    
+                    # 现在安全索引
                     point_patch_indices = point_patch_indices[:, cache_position]
                     
         if attention_mask is not None and position_ids is None:
@@ -219,10 +248,10 @@ class MultimodalQwen2ForCausalLM(Qwen2ForCausalLM):
                 "attention_mask": attention_mask,
             }
         )
-        
-        if point_patches is not None:
-            model_inputs["point_patches"] = point_patches
-        if point_patch_indices is not None:
-            model_inputs["point_patch_indices"] = point_patch_indices
+        if cache_position is None or (cache_position is not None and cache_position[0] == 0):
+            if point_patches is not None:
+                model_inputs["point_patches"] = point_patches
+            if point_patch_indices is not None:
+                model_inputs["point_patch_indices"] = point_patch_indices
                 
         return model_inputs
