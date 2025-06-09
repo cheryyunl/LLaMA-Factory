@@ -1,5 +1,5 @@
 ### model
-model_name_or_path: multimodal_qwen2.5_7b_model
+model_name_or_path: /code/MultimodalQwen2.5-7B-Instruct
 trust_remote_code: true
 
 ### method
@@ -24,29 +24,29 @@ tokenized_path: data/tokenized_full_data
 # interleave_probs: 0.2,0.12,0.12,0.08,0.075,0.065,0.06,0.06,0.06,0.055,0.055,0.05
 
 ### output
-output_dir: saves/qwen2.5_3d/full/sft_7b_stage1
+output_dir: saves/qwen2.5_3d/full/stage1
 logging_steps: 10
-save_steps: 1000
+save_steps: 200
 plot_loss: true
 overwrite_output_dir: true
 save_only_model: false
 report_to: wandb
 
 ### train
-per_device_train_batch_size: 4
+per_device_train_batch_size: 8
 gradient_accumulation_steps: 8
 learning_rate: 1.0e-5
-num_train_epochs: 2.5
+num_train_epochs: 3
 lr_scheduler_type: cosine
 warmup_ratio: 0.1
 bf16: true
 ddp_timeout: 180000000
 resume_from_checkpoint: null
-early_stopping_steps: 3000
+early_stopping_steps: 600
 load_best_model_at_end: true
 
 ### eval
 val_size: 0.05
 per_device_eval_batch_size: 4
 eval_strategy: steps
-eval_steps: 1000
+eval_steps: 200
