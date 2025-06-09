@@ -1,5 +1,6 @@
 ### model
-model_name_or_path: saves/qwen2.5_3d/full/sft_7b_stage1_abl_lr
+model_name_or_path: saves/qwen2.5_3d/full/stage1/checkpoint-5400
+trust_remote_code: true
 
 ### method
 stage: sft
@@ -11,7 +12,7 @@ freeze_language_model: false
 deepspeed: examples/deepspeed/ds_z3_config.json
 
 ### dataset
-dataset: shapenet_cap,abo,objaverse_cap,3d_mm_vet
+dataset: shapenet_cap,abo,objaverse_cap,3d_mm_vet,shapenet,scannet
 streaming: false
 mix_strategy: concat
 template: qwen2_pointcloud
@@ -23,9 +24,9 @@ tokenized_path: data/tokenized_cap_data
 # interleave_probs: 0.2,0.12,0.12,0.08,0.075,0.065,0.06,0.06,0.06,0.055,0.055,0.05
 
 ### output
-output_dir: saves/qwen2.5_3d/full/sft_7b_stage2_abl_lr
+output_dir: saves/qwen2.5_3d/full/stage2
 logging_steps: 10
-save_steps: 1000
+save_steps: 200
 plot_loss: true
 overwrite_output_dir: true
 save_only_model: false
@@ -33,19 +34,19 @@ report_to: wandb
 
 ### train
 per_device_train_batch_size: 4
-gradient_accumulation_steps: 8
+gradient_accumulation_steps: 4
 learning_rate: 1.0e-5
-num_train_epochs: 5
+num_train_epochs: 2
 lr_scheduler_type: cosine
-warmup_ratio: 0.1
+warmup_ratio: 0.05
 bf16: true
 ddp_timeout: 180000000
 resume_from_checkpoint: null
-early_stopping_steps: 3000
+early_stopping_steps: 800
 load_best_model_at_end: true
 
 ### eval
 val_size: 0.05
 per_device_eval_batch_size: 8
 eval_strategy: steps
-eval_steps: 1000
+eval_steps: 200
